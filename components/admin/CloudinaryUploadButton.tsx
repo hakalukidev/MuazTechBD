@@ -1,25 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type ChangeEvent, useRef, useState } from "react";
 import { ImagePlus, Loader2 } from "lucide-react";
 
+import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-
-const CLOUDINARY_SCRIPT_SRC = "https://widget.cloudinary.com/v2.0/global/all.js";
-
-type UploadResult = {
-  secure_url?: string;
-  public_id?: string;
-};
-
-type UploadEvent = {
-  event?: string;
-  info?: UploadResult;
-};
-
-type CloudinaryWidget = {
-  open: () => void;
-};
 
 type CloudinaryUploadButtonProps = {
   disabled?: boolean;
@@ -27,107 +12,128 @@ type CloudinaryUploadButtonProps = {
   onUploaded: (asset: { url: string; publicId: string }) => void;
 };
 
-declare global {
-  interface Window {
-    cloudinary?: {
-      createUploadWidget: (
-        options: Record<string, unknown>,
-        callback: (error: unknown, result: UploadEvent) => void
-      ) => CloudinaryWidget;
-    };
-  }
-}
+type CloudinaryUploadResponse = {
+  public_id?: string;
+  secure_url?: string;
+  error?: {
+    message?: string;
+  };
+};
+
+const ACCEPTED_FILE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 export default function CloudinaryUploadButton({
   disabled,
   label = "Upload image",
   onUploaded,
 }: CloudinaryUploadButtonProps) {
-  const [isReady, setIsReady] = useState(false);
-  const [isOpening, setIsOpening] = useState(false);
-  const widgetRef = useRef<CloudinaryWidget | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-  const folder = process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER;
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim();
+  const folder = process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER?.trim();
 
-  useEffect(() => {
-    if (window.cloudinary) {
-      setIsReady(true);
+  async function uploadFile(file: File) {
+    if (!cloudName || !uploadPreset) {
+      toast({
+        title: "Upload not configured",
+        description: "Cloudinary upload settings are missing.",
+        variant: "destructive",
+      });
       return;
     }
 
-    const existingScript = document.querySelector<HTMLScriptElement>(
-      `script[src="${CLOUDINARY_SCRIPT_SRC}"]`
-    );
-
-    if (existingScript) {
-      const onLoad = () => setIsReady(true);
-      existingScript.addEventListener("load", onLoad);
-
-      return () => existingScript.removeEventListener("load", onLoad);
-    }
-
-    const script = document.createElement("script");
-    script.src = CLOUDINARY_SCRIPT_SRC;
-    script.async = true;
-    script.onload = () => setIsReady(true);
-    document.body.appendChild(script);
-
-    return () => {
-      script.onload = null;
-    };
-  }, []);
-
-  const handleUpload = () => {
-    if (!window.cloudinary || !cloudName || !uploadPreset) {
+    if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
+      toast({
+        title: "Unsupported image",
+        description: "Please choose a PNG, JPG, JPEG, or WEBP image.",
+        variant: "destructive",
+      });
       return;
     }
 
-    setIsOpening(true);
+    setIsUploading(true);
 
-    if (!widgetRef.current) {
-      widgetRef.current = window.cloudinary.createUploadWidget(
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
+
+      if (folder) {
+        formData.append("folder", folder);
+      }
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         {
-          cloudName,
-          uploadPreset,
-          folder,
-          multiple: false,
-          sources: ["local", "url", "camera"],
-          resourceType: "image",
-          clientAllowedFormats: ["png", "jpg", "jpeg", "webp"],
-        },
-        (error, result) => {
-          if (!error && result.event === "success" && result.info?.secure_url) {
-            onUploaded({
-              url: result.info.secure_url,
-              publicId: result.info.public_id ?? "",
-            });
-          }
-
-          if (result.event === "close" || result.event === "success" || error) {
-            setIsOpening(false);
-          }
+          method: "POST",
+          body: formData,
         }
       );
+
+      const payload = (await response.json().catch(() => null)) as
+        | CloudinaryUploadResponse
+        | null;
+
+      if (!response.ok || !payload?.secure_url || !payload.public_id) {
+        throw new Error(payload?.error?.message ?? "Cloudinary upload failed.");
+      }
+
+      onUploaded({
+        url: payload.secure_url,
+        publicId: payload.public_id,
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "The image could not be uploaded right now.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    }
+  }
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
     }
 
-    widgetRef.current.open();
-  };
+    void uploadFile(file);
+  }
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      onClick={handleUpload}
-      disabled={disabled || !isReady || !cloudName || !uploadPreset || isOpening}
-    >
-      {isOpening ? (
-        <Loader2 className="animate-spin" />
-      ) : (
-        <ImagePlus />
-      )}
-      {label}
-    </Button>
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED_FILE_TYPES.join(",")}
+        className="sr-only"
+        onChange={handleFileChange}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => inputRef.current?.click()}
+        disabled={disabled || !cloudName || !uploadPreset || isUploading}
+      >
+        {isUploading ? (
+          <Loader2 className="animate-spin" />
+        ) : (
+          <ImagePlus />
+        )}
+        {isUploading ? "Uploading..." : label}
+      </Button>
+    </>
   );
 }
