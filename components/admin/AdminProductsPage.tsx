@@ -1,0 +1,513 @@
+"use client";
+
+import { useQueryClient } from "@tanstack/react-query";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  Loader2,
+  PencilLine,
+  Plus,
+  Search,
+  Trash2,
+  ExternalLink,
+} from "lucide-react";
+
+import ProductForm, {
+  toProductInput,
+  toProductFormValues,
+  type ProductFormValues,
+} from "@/components/admin/ProductForm";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useProductsQuery } from "@/hooks/use-products-query";
+import { toast } from "@/hooks/use-toast";
+import { deleteManagedProductImage } from "@/lib/product-image-service";
+import { resolveProductPhotoPublicId } from "@/lib/product-images";
+import { productsQueryKey } from "@/lib/product-query";
+import { revalidateProductsCache } from "@/lib/revalidate-products-cache";
+import {
+  deleteProduct,
+  updateProduct,
+} from "@/lib/product-service";
+import {
+  PRODUCT_CATEGORIES,
+  type Product,
+  type ProductInput,
+} from "@/lib/products";
+
+function formatProductDate(value: number | null) {
+  if (!value) {
+    return "Recently";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(value);
+}
+
+function hasProductImageChanged(previousProduct: Product, nextProduct: ProductInput) {
+  const previousPhotoUrl = previousProduct.photoUrl.trim();
+  const nextPhotoUrl = nextProduct.photoUrl.trim();
+  const previousPublicId = resolveProductPhotoPublicId(previousProduct) ?? "";
+  const nextPublicId = resolveProductPhotoPublicId(nextProduct) ?? "";
+
+  return previousPhotoUrl !== nextPhotoUrl || previousPublicId !== nextPublicId;
+}
+
+function buildUpdatedProduct(previousProduct: Product, nextProduct: ProductInput): Product {
+  return {
+    ...previousProduct,
+    ...nextProduct,
+    updatedAtMs: Date.now(),
+  };
+}
+
+function getCleanupDescription(
+  context: "deleted product" | "previous image",
+  cleanupStatus: "skipped" | "not_found"
+) {
+  if (cleanupStatus === "skipped") {
+    return context === "deleted product"
+      ? "The product was deleted, but no Cloudinary public ID was available for the image cleanup."
+      : "The product was saved, but the previous image did not include a Cloudinary public ID for cleanup.";
+  }
+
+  return context === "deleted product"
+    ? "The product was deleted, but Cloudinary could not confirm the image removal. Check the stored photo URL/public ID."
+    : "The product was saved, but Cloudinary could not confirm the previous image removal. Check the stored photo URL/public ID.";
+}
+
+type AdminProductsPageProps = {
+  initialProducts?: Product[];
+};
+
+export default function AdminProductsPage({
+  initialProducts,
+}: AdminProductsPageProps) {
+  const queryClient = useQueryClient();
+  const {
+    data: products = [],
+    error,
+    isPending: isLoadingProducts,
+  } = useProductsQuery(initialProducts);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+
+    toast({
+      title: "Could not load products",
+      description: "Please refresh the page and try again.",
+      variant: "destructive",
+    });
+  }, [error]);
+
+  const categories = useMemo(() => {
+    const dynamicCategories = products
+      .map((product) => product.category)
+      .filter(Boolean);
+
+    return ["all", ...new Set([...PRODUCT_CATEGORIES, ...dynamicCategories])];
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    const normalizedSearch = deferredSearchTerm.trim().toLowerCase();
+
+    return products.filter((product) => {
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        product.name.toLowerCase().includes(normalizedSearch) ||
+        product.category.toLowerCase().includes(normalizedSearch) ||
+        product.price.toLowerCase().includes(normalizedSearch);
+      const matchesCategory =
+        selectedCategory === "all" || product.category === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [deferredSearchTerm, products, selectedCategory]);
+
+  async function handleDelete(product: Product) {
+    const confirmed = window.confirm(
+      `Delete "${product.name}" from the product list?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingProductId(product.id);
+
+    try {
+      await deleteProduct(product.id);
+      queryClient.setQueryData<Product[]>(productsQueryKey, (currentProducts) =>
+        (currentProducts ?? []).filter((candidate) => candidate.id !== product.id)
+      );
+      setEditingProduct((currentProduct) =>
+        currentProduct?.id === product.id ? null : currentProduct
+      );
+
+      let cleanupDescription: string | null = null;
+
+      try {
+        const cleanupResult = await deleteManagedProductImage(product);
+
+        if (cleanupResult.status !== "deleted") {
+          cleanupDescription = getCleanupDescription("deleted product", cleanupResult.status);
+        }
+      } catch (cleanupError) {
+        cleanupDescription =
+          cleanupError instanceof Error
+            ? cleanupError.message
+            : "The product was deleted, but the image could not be removed.";
+      }
+
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: productsQueryKey }),
+        revalidateProductsCache(),
+      ]);
+      toast({
+        title: "Product deleted",
+        description:
+          cleanupDescription ?? "The product was removed from the catalog.",
+      });
+    } catch {
+      toast({
+        title: "Delete failed",
+        description: "The product could not be removed right now.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingProductId(null);
+    }
+  }
+
+  async function handleUpdate(
+    productId: string,
+    values: ProductFormValues
+  ) {
+    const previousProduct =
+      editingProduct && editingProduct.id === productId ? editingProduct : null;
+    const nextProduct = toProductInput(values);
+    const imageChanged = previousProduct
+      ? hasProductImageChanged(previousProduct, nextProduct)
+      : false;
+
+    try {
+      await updateProduct(productId, nextProduct);
+
+      if (previousProduct) {
+        const updatedProduct = buildUpdatedProduct(previousProduct, nextProduct);
+
+        queryClient.setQueryData<Product[]>(productsQueryKey, (currentProducts) =>
+          (currentProducts ?? []).map((product) =>
+            product.id === productId ? updatedProduct : product
+          )
+        );
+      }
+
+      let cleanupDescription: string | null = null;
+
+      if (previousProduct && imageChanged) {
+        try {
+          const cleanupResult = await deleteManagedProductImage(previousProduct);
+
+          if (cleanupResult.status !== "deleted") {
+            cleanupDescription = getCleanupDescription("previous image", cleanupResult.status);
+          }
+        } catch (cleanupError) {
+          cleanupDescription =
+            cleanupError instanceof Error
+              ? cleanupError.message
+              : "The product was saved, but the previous image could not be removed.";
+        }
+      }
+
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: productsQueryKey }),
+        revalidateProductsCache(),
+      ]);
+      toast({
+        title: "Product updated",
+        description:
+          cleanupDescription ?? "The product details were saved successfully.",
+      });
+      setEditingProduct(null);
+    } catch {
+      if (previousProduct && imageChanged) {
+        try {
+          await deleteManagedProductImage(nextProduct);
+        } catch {
+          // Keep the original update error as the primary failure surfaced to the UI.
+        }
+      }
+
+      toast({
+        title: "Update failed",
+        description: "The product changes could not be saved.",
+        variant: "destructive",
+      });
+      throw new Error("Update failed");
+    }
+  }
+
+  const totalCategories = useMemo(
+    () => new Set(products.map((product) => product.category).filter(Boolean)).size,
+    [products]
+  );
+  const featuredCount = products.filter((product) => product.isHot).length;
+  const imageReadyCount = products.filter((product) => product.photoUrl).length;
+
+  return (
+    <div className="space-y-6">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardDescription>Total products</CardDescription>
+            <CardTitle className="text-3xl text-slate-950">
+              {products.length}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardDescription>Featured products</CardDescription>
+            <CardTitle className="text-3xl text-slate-950">
+              {featuredCount}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardDescription>Categories</CardDescription>
+            <CardTitle className="text-3xl text-slate-950">
+              {totalCategories}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardDescription>Images ready</CardDescription>
+            <CardTitle className="text-3xl text-slate-950">
+              {imageReadyCount}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      </section>
+
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-slate-950">All products</CardTitle>
+            <CardDescription>
+              Search, filter, edit, and remove products from one place.
+            </CardDescription>
+          </div>
+          <Button asChild variant="outline" className="border-slate-300">
+            <Link href="/admin/products/new">
+              <Plus />
+              Add Product
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative w-full lg:max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search by name, category, or price"
+                className="pl-9"
+              />
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <select
+                value={selectedCategory}
+                onChange={(event) => setSelectedCategory(event.target.value)}
+                className="flex h-10 min-w-[220px] rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category === "all" ? "All categories" : category}
+                  </option>
+                ))}
+              </select>
+              <Button
+                type="button"
+                variant="ghost"
+                className="justify-start text-slate-600"
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedCategory("all");
+                }}
+              >
+                Clear filters
+              </Button>
+            </div>
+          </div>
+
+          {isLoadingProducts ? (
+            <div className="flex items-center gap-2 py-8 text-sm text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading products...
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
+              <p className="text-base font-medium text-slate-900">
+                No products match the current filters.
+              </p>
+              <p className="mt-2 text-sm text-slate-500">
+                Try another search, choose a different category, or add a new
+                product.
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Image</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead className="text-right">Manage</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.map((product) => {
+                  const isDeleting = deletingProductId === product.id;
+
+                  return (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        {product.photoUrl ? (
+                          <img
+                            src={product.photoUrl}
+                            alt={product.name}
+                            className="h-14 w-14 rounded-xl object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                            No image
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="min-w-[260px]">
+                        <div>
+                          <p className="font-medium text-slate-900">{product.name}</p>
+                          <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                            {product.description}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{product.category}</TableCell>
+                      <TableCell>{product.price}</TableCell>
+                      <TableCell>
+                        {product.isHot ? (
+                          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+                            Featured
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                            Standard
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>{formatProductDate(product.updatedAtMs)}</TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingProduct(product)}
+                          >
+                            <PencilLine />
+                            Edit
+                          </Button>
+                          <Button asChild variant="ghost" size="sm">
+                            <Link href={`/product/${product.id}`}>
+                              <ExternalLink />
+                              View
+                            </Link>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            disabled={isDeleting}
+                            onClick={() => void handleDelete(product)}
+                          >
+                            {isDeleting ? (
+                              <Loader2 className="animate-spin" />
+                            ) : (
+                              <Trash2 />
+                            )}
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={Boolean(editingProduct)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingProduct(null);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto border-slate-200 bg-white text-slate-900">
+          <DialogHeader>
+            <DialogTitle>Edit product</DialogTitle>
+            <DialogDescription>
+              Update product details, category, price, and image from one form.
+            </DialogDescription>
+          </DialogHeader>
+          {editingProduct ? (
+            <ProductForm
+              key={editingProduct.id}
+              defaultValues={toProductFormValues(editingProduct)}
+              layout="dialog"
+              submitLabel="Save Changes"
+              pendingLabel="Saving Changes..."
+              onSubmit={(values) => handleUpdate(editingProduct.id, values)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
