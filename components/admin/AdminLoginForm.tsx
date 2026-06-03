@@ -1,8 +1,9 @@
+// components/admin/AdminLoginForm.tsx
 "use client";
 
-import { useState } from "react";
 import { Loader2, LockKeyhole } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,13 +47,13 @@ export default function AdminLoginForm() {
   }
 
   return (
-    <Card className="border-slate-200 shadow-xl">
+    <Card className="border-blue-200 shadow-xl">
       <CardHeader className="space-y-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white">
           <LockKeyhole className="h-5 w-5" />
         </div>
         <div className="space-y-1">
-          <CardTitle className="text-2xl text-slate-950">Admin login</CardTitle>
+          <CardTitle className="text-2xl text-blue-950">Admin login</CardTitle>
           <CardDescription>
             Sign in with your admin credentials to manage the catalog.
           </CardDescription>
@@ -61,7 +62,7 @@ export default function AdminLoginForm() {
       <CardContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="admin-username">
+            <label className="text-sm font-medium text-blue-700" htmlFor="admin-username">
               Username
             </label>
             <Input
@@ -74,7 +75,7 @@ export default function AdminLoginForm() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="admin-password">
+            <label className="text-sm font-medium text-blue-700" htmlFor="admin-password">
               Password
             </label>
             <Input
@@ -92,7 +93,7 @@ export default function AdminLoginForm() {
               {errorMessage}
             </p>
           ) : null}
-          <Button className="w-full" type="submit" disabled={isSubmitting}>
+          <Button className="w-full bg-blue-600 hover:bg-blue-700" type="submit" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 className="animate-spin" /> : null}
             {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>

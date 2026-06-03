@@ -103,7 +103,7 @@ export default function Footer() {
               &copy; {new Date().getFullYear()} Muaz Technology. All rights reserved.
             </p>
             <p className="text-gray-500 text-xs">
-              Designed with ❤️ for quality service
+              Developed by <a href="https://hakaluki.dev" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition">hakaluki.dev</a>
             </p>
           </div>
         </div>
