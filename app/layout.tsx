@@ -1,8 +1,8 @@
-import Footer from '@/components/layout/Footer'
-import Navbar from '@/components/layout/Navbar'
-import TopBar from '@/components/layout/TopBar'
+import AppShell from '@/components/layout/AppShell'
+import QueryProvider from '@/components/providers/QueryProvider'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+// @ts-ignore - global stylesheet import is handled by Next.js
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Muaz Technology - Industrial Machinery & Automobile Equipment',
   description: 'Trusted supplier of industrial machinery and automobile equipment in Bangladesh',
+  icons: {
+    icon: '/icon.png',
+  },
 }
 
 export default function RootLayout({
@@ -20,10 +23,9 @@ export default function RootLayout({
   return (
     <html lang="bn">
       <body className={inter.className}>
-        <TopBar />
-        <Navbar />
-        {children}
-        <Footer />
+        <QueryProvider>
+          <AppShell>{children}</AppShell>
+        </QueryProvider>
       </body>
     </html>
   )
