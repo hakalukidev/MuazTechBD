@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronDown,
   ChevronRight,
   Grid2X2,
   Grid3X3,
@@ -11,10 +11,40 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 import ProductPhoto from "@/components/products/ProductPhoto";
 import { useProductsQuery } from "@/hooks/use-products-query";
-import { PRODUCT_CATEGORIES, type Product } from "@/lib/products";
+import { type Product } from "@/lib/products";
+
+// [NEW] Define category hierarchy with main categories and subcategories
+// Based on the image: Lifting Equipments, Diagnostic and Checking, Denting & Painting, Repairing Equipments, Supporting Equipments
+const CATEGORY_HIERARCHY = [
+  {
+    name: "Lifting Equipments",
+    subcategories: ["2 Post Lift", "4 Post Lift", "Scissor Lift", "Bottle Jack", "Floor Jack"],
+  },
+  {
+    name: "Diagnostic and Checking",
+    subcategories: ["Engine Diagnostic Tool", "Battery Tester", "Multimeter", "Scan Tool"],
+  },
+  {
+    name: "Denting & Painting",
+    subcategories: ["Paint Spray Gun", "Denting Kit", "Paint Booth", "Sander"],
+  },
+  {
+    name: "Repairing Equipments",
+    subcategories: ["Impact Wrench", "Air Compressor", "Tool Set", "Work Light"],
+  },
+  {
+    name: "Supporting Equipments",
+    subcategories: ["Tool Cabinet", "Creeper", "Oil Drain", "Shop Press"],
+  },
+];
+
+// [NEW] Flatten all subcategories for mapping to products
+const ALL_SUBCATEGORIES = CATEGORY_HIERARCHY.flatMap(cat => cat.subcategories);
 
 type HomeCatalogClientProps = {
   initialProducts?: Product[];
@@ -23,17 +53,50 @@ type HomeCatalogClientProps = {
 export default function HomeCatalogClient({
   initialProducts,
 }: HomeCatalogClientProps) {
+  const searchParams = useSearchParams();
+  const urlCategory = searchParams.get("category");
+  
   const { data: products = [], isPending: isLoading } =
     useProductsQuery(initialProducts);
-  const [activeCategory, setActiveCategory] = useState("all");
+  
+  // [NEW] Track selected main category and subcategory
+  const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
+  
   const [gridCols, setGridCols] = useState(4);
   const [hoveredProduct, setHoveredProduct] = useState<string | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  // [NEW] Initialize selected category from URL on mount
+  useEffect(() => {
+    if (urlCategory) {
+      // Check if URL category is a main category
+      const foundMain = CATEGORY_HIERARCHY.find(cat => cat.name === urlCategory);
+      if (foundMain) {
+        setSelectedMainCategory(urlCategory);
+        setSelectedSubCategory(null);
+      } else if (ALL_SUBCATEGORIES.includes(urlCategory)) {
+        // Find which main category this subcategory belongs to
+        const parentCat = CATEGORY_HIERARCHY.find(cat => 
+          cat.subcategories.includes(urlCategory)
+        );
+        if (parentCat) {
+          setSelectedMainCategory(parentCat.name);
+          setSelectedSubCategory(urlCategory);
+        }
+      }
+    }
+  }, [urlCategory]);
 
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
+      }
 
       if (window.innerWidth < 640) {
         setGridCols(1);
@@ -52,22 +115,41 @@ export default function HomeCatalogClient({
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const categories = useMemo(() => {
-    const dynamicCategories = Array.from(
-      new Set(products.map((product) => product.category).filter(Boolean))
-    );
+  // [NEW] Get categories for sidebar (main + subcategory toggle)
+  const sidebarCategories = useMemo(() => {
+    return CATEGORY_HIERARCHY;
+  }, []);
 
-    return ["all", ...new Set([...dynamicCategories, ...PRODUCT_CATEGORIES])];
-  }, [products]);
+  // [NEW] Filter products based on selected main category and subcategory
+  const filteredProducts = useMemo(() => {
+    if (!selectedMainCategory) {
+      // If no category selected, show all products
+      return products;
+    }
+    
+    // If subcategory is selected, filter by that subcategory
+    if (selectedSubCategory) {
+      return products.filter(
+        (product) => product.category === selectedSubCategory
+      );
+    }
+    
+    // If only main category is selected, show products from all its subcategories
+    const mainCat = CATEGORY_HIERARCHY.find(cat => cat.name === selectedMainCategory);
+    if (mainCat) {
+      return products.filter(
+        (product) => mainCat.subcategories.includes(product.category)
+      );
+    }
+    
+    return products;
+  }, [products, selectedMainCategory, selectedSubCategory]);
 
+  // Featured products (unchanged)
   const featuredProducts = useMemo(
     () => products.filter((product) => product.isHot).slice(0, 5),
     [products]
   );
-  const filteredProducts =
-    activeCategory === "all"
-      ? products
-      : products.filter((product) => product.category === activeCategory);
 
   const getGridColsClass = () => {
     if (gridCols === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
@@ -80,97 +162,191 @@ export default function HomeCatalogClient({
     return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
   };
 
+  // [NEW] Get display name for current selection
+  const currentCategoryName = useMemo(() => {
+    if (selectedSubCategory) return selectedSubCategory;
+    if (selectedMainCategory) return selectedMainCategory;
+    return "All Products";
+  }, [selectedMainCategory, selectedSubCategory]);
+
+  // [NEW] Handle main category click
+  const handleMainCategoryClick = (categoryName: string) => {
+    setSelectedMainCategory(categoryName);
+    setSelectedSubCategory(null);
+    if (isMobile) setSidebarOpen(false);
+  };
+
+  // [NEW] Handle subcategory click
+  const handleSubCategoryClick = (subCategoryName: string) => {
+    setSelectedSubCategory(subCategoryName);
+    // Find parent main category to highlight
+    const parentCat = CATEGORY_HIERARCHY.find(cat => 
+      cat.subcategories.includes(subCategoryName)
+    );
+    if (parentCat) {
+      setSelectedMainCategory(parentCat.name);
+    }
+    if (isMobile) setSidebarOpen(false);
+  };
+
+  // [NEW] Handle "All Products" click
+  const handleAllProductsClick = () => {
+    setSelectedMainCategory(null);
+    setSelectedSubCategory(null);
+    if (isMobile) setSidebarOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-       
-
-        <div className="mb-4 lg:hidden">
+        
+        {/* Mobile Category Toggle Button */}
+        <div className="mb-4">
           <button
             type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 transition hover:bg-gray-200"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm transition hover:bg-gray-50 lg:hidden"
           >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            <span className="text-sm font-medium">Categories & Products</span>
+            <div className="flex items-center gap-2">
+              <Menu size={18} className="text-gray-600" />
+              <span className="font-medium text-gray-700">
+                {currentCategoryName}
+              </span>
+            </div>
+            <ChevronDown
+              size={18}
+              className={`transform transition-transform ${sidebarOpen ? "rotate-180" : ""}`}
+            />
           </button>
         </div>
 
         <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+          {/* Sidebar - Category hierarchy with subcategories */}
           <aside
             className={`
-              ${mobileMenuOpen ? "block" : "hidden"}
-              w-full border-b pb-6 lg:block lg:w-72 lg:shrink-0 lg:border-b-0 lg:pb-0
+              ${sidebarOpen ? "block" : "hidden"}
+              w-full lg:block lg:w-80 lg:shrink-0
             `}
           >
-            <div className="mb-6 lg:mb-8">
-              <h2 className="mb-3 text-base font-bold uppercase tracking-wide text-gray-900 lg:mb-4 lg:text-lg">
-                Categories
-              </h2>
-              <ul className="space-y-1 lg:space-y-2">
-                {categories.map((category) => (
-                  <li key={category}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveCategory(category);
-                        if (isMobile) {
-                          setMobileMenuOpen(false);
-                        }
-                      }}
-                      className={`w-full rounded-md px-2 py-1.5 text-left text-sm transition-colors lg:px-0 lg:py-1 lg:text-base ${
-                        activeCategory === category
-                          ? "bg-gray-50 font-bold text-gray-900 lg:bg-transparent"
-                          : "text-blue-600 hover:bg-gray-50 hover:text-blue-800 lg:hover:bg-transparent"
-                      }`}
-                    >
-                      {category === "all" ? "All Products" : category}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm lg:p-5">
+              {/* Category Header with close button for mobile */}
+              <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-3 lg:hidden">
+                <h2 className="text-base font-bold text-gray-900">Categories</h2>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="rounded-full p-1 hover:bg-gray-100"
+                >
+                  <X size={18} />
+                </button>
+              </div>
 
-            <div>
-              <h2 className="mb-3 text-base font-bold uppercase tracking-wide text-gray-900 lg:mb-4 lg:text-lg">
-                Featured Products
-              </h2>
-              {isLoading ? (
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading...
-                </div>
-              ) : featuredProducts.length === 0 ? (
-                <p className="text-sm text-gray-500">
-                  Mark products as featured in the admin panel to show them here.
-                </p>
-              ) : (
-                <ul className="space-y-3 lg:space-y-4">
-                  {featuredProducts.map((product) => (
-                    <li key={product.id} className="flex items-center gap-3">
-                      <ProductPhoto
-                        src={product.photoUrl}
-                        alt={product.name}
-                        className="h-12 w-12 shrink-0 rounded lg:h-16 lg:w-16"
-                        imgClassName="object-cover"
-                      />
-                      <Link
-                        href={`/product/${product.id}`}
-                        className="text-xs leading-snug text-blue-600 hover:text-blue-800 lg:text-sm"
-                        onClick={() => isMobile && setMobileMenuOpen(false)}
+              {/* All Products Link */}
+              <div className="mb-4">
+                <button
+                  onClick={handleAllProductsClick}
+                  className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-all lg:px-4 lg:py-2.5 lg:text-base ${
+                    !selectedMainCategory && !selectedSubCategory
+                      ? "bg-blue-50 font-semibold text-blue-700"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                  }`}
+                >
+                  📦 All Products
+                </button>
+              </div>
+
+              {/* Category Hierarchy with Subcategories */}
+              <div className="mb-6">
+                <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-gray-500 lg:mb-4 lg:text-base">
+                  BROWSE CATEGORIES
+                </h2>
+                <ul className="space-y-2">
+                  {sidebarCategories.map((category) => (
+                    <li key={category.name}>
+                      {/* Main Category Button */}
+                      <button
+                        onClick={() => handleMainCategoryClick(category.name)}
+                        className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-all lg:px-4 lg:py-2.5 lg:text-base ${
+                          selectedMainCategory === category.name && !selectedSubCategory
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-800 hover:bg-gray-50 hover:text-blue-600"
+                        }`}
                       >
-                        {product.name.length > 50
-                          ? `${product.name.substring(0, 50)}...`
-                          : product.name}
-                      </Link>
+                        {category.name}
+                      </button>
+                      
+                      {/* [NEW] Subcategories - shown when main category is selected */}
+                      {selectedMainCategory === category.name && (
+                        <ul className="ml-4 mt-1 space-y-1 border-l-2 border-blue-200 pl-3">
+                          {category.subcategories.map((sub) => (
+                            <li key={sub}>
+                              <button
+                                onClick={() => handleSubCategoryClick(sub)}
+                                className={`w-full rounded-lg px-3 py-1.5 text-left text-sm transition-all ${
+                                  selectedSubCategory === sub
+                                    ? "bg-blue-50 font-medium text-blue-700"
+                                    : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
+                                }`}
+                              >
+                                {sub}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
                   ))}
                 </ul>
-              )}
+              </div>
+
+              {/* Featured Products Section (unchanged) */}
+              <div className="border-t border-gray-200 pt-5">
+                <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-gray-500 lg:mb-4 lg:text-base">
+                  FEATURED
+                </h2>
+                {isLoading ? (
+                  <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading...
+                  </div>
+                ) : featuredProducts.length === 0 ? (
+                  <p className="text-center text-sm text-gray-400 py-6">
+                    No featured products yet
+                  </p>
+                ) : (
+                  <ul className="space-y-3">
+                    {featuredProducts.map((product) => (
+                      <li key={product.id} className="group">
+                        <Link
+                          href={`/product/${product.id}`}
+                          className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-gray-50"
+                          onClick={() => isMobile && setSidebarOpen(false)}
+                        >
+                          <ProductPhoto
+                            src={product.photoUrl}
+                            alt={product.name}
+                            className="h-12 w-12 shrink-0 rounded-lg border border-gray-200"
+                            imgClassName="object-cover w-full h-full rounded-lg"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-2 text-xs font-medium text-gray-800 group-hover:text-blue-600 lg:text-sm">
+                              {product.name}
+                            </p>
+                            <p className="mt-1 text-xs text-blue-600">
+                              {product.category?.split(" ").slice(0, 2).join(" ")}
+                            </p>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </aside>
 
+          {/* Main Content - Products Grid */}
           <main className="flex-1">
+            {/* Breadcrumb and Grid Controls */}
             <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center lg:mb-6">
               <div className="flex items-center gap-2 text-xs text-gray-500 sm:text-sm">
                 <Link href="/" className="hover:text-blue-600">
@@ -178,7 +354,7 @@ export default function HomeCatalogClient({
                 </Link>
                 <ChevronRight size={14} />
                 <span className="font-medium text-gray-800">
-                  {activeCategory === "all" ? "All Products" : activeCategory}
+                  {currentCategoryName}
                 </span>
               </div>
 
@@ -226,11 +402,12 @@ export default function HomeCatalogClient({
                   href="/products"
                   className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-700 transition hover:border-blue-400 hover:text-blue-600 sm:text-sm"
                 >
-                  Open full catalog
+                  View All
                 </Link>
               </div>
             </div>
 
+            {/* Products Grid - Shows filtered products based on selected category */}
             {isLoading ? (
               <div className="flex items-center gap-2 py-12 text-sm text-gray-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -247,25 +424,25 @@ export default function HomeCatalogClient({
                 {filteredProducts.map((product) => (
                   <div
                     key={product.id}
-                    className="group relative overflow-hidden rounded-md border border-gray-200 transition-shadow hover:shadow-lg"
+                    className="group relative overflow-hidden rounded-lg border border-gray-200 bg-white transition-all duration-300 hover:shadow-lg"
                     onMouseEnter={() => setHoveredProduct(product.id)}
                     onMouseLeave={() => setHoveredProduct(null)}
                   >
-                    <div className="relative aspect-square cursor-pointer overflow-hidden bg-gray-50">
+                    <div className="relative aspect-square cursor-pointer overflow-hidden bg-gray-100">
                       <ProductPhoto
                         src={product.photoUrl}
                         alt={product.name}
-                        className="h-full"
-                        imgClassName="transition-transform duration-300 group-hover:scale-105"
+                        className="h-full w-full"
+                        imgClassName="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
 
                       {hoveredProduct === product.id && (
                         <div className="absolute inset-x-0 bottom-0 animate-slide-up">
                           <Link
                             href={`/product/${product.id}`}
-                            className="block bg-blue-600 py-2 text-center text-xs font-semibold text-white transition-colors hover:bg-blue-700 sm:py-2.5 sm:text-sm"
+                            className="block bg-blue-600 py-2.5 text-center text-xs font-semibold text-white transition-colors hover:bg-blue-700 sm:py-3 sm:text-sm"
                           >
-                            Read More
+                            View Details
                           </Link>
                         </div>
                       )}
@@ -274,11 +451,11 @@ export default function HomeCatalogClient({
                     <div className="p-3 lg:p-4">
                       <Link
                         href={`/product/${product.id}`}
-                        className="line-clamp-3 text-xs leading-snug text-gray-800 hover:text-blue-600 sm:text-sm"
+                        className="line-clamp-2 text-sm font-medium leading-snug text-gray-800 hover:text-blue-600 sm:text-base"
                       >
                         {product.name}
                       </Link>
-                      <p className="mt-2 text-xs font-medium text-blue-600">
+                      <p className="mt-1 text-xs text-blue-600 sm:mt-2 sm:text-sm">
                         {product.category}
                       </p>
                     </div>
@@ -289,6 +466,14 @@ export default function HomeCatalogClient({
           </main>
         </div>
       </div>
+
+      {/* Overlay for mobile when sidebar is open */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       <style jsx>{`
         @keyframes slide-up {

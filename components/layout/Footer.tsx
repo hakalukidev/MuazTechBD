@@ -72,7 +72,7 @@ export default function Footer() {
                 <FaTwitter size={18} className="md:w-5 md:h-5" />
               </a>
               <a 
-                href="#" 
+                href="https://youtube.com/@muaztechnology3326" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="bg-gray-800 p-2 rounded-full hover:bg-red-600 transition-colors duration-300"
