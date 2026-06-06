@@ -1,7 +1,7 @@
 // components/admin/AdminSidebarNav.tsx
 "use client";
 
-import { LayoutDashboard, PackagePlus } from "lucide-react";
+import { FileText, FolderTree, Image, LayoutDashboard, PackagePlus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -17,6 +17,21 @@ const navigationItems = [
     href: "/admin/products/new",
     label: "Add Product",
     icon: PackagePlus,
+  },
+  {
+    href: "/admin/blog",
+    label: "Blog Posts",
+    icon: FileText,
+  },
+  {
+    href: "/admin/slides",
+    label: "Slides",
+    icon: Image,
+  },
+  {
+    href: "/admin/categories",
+    label: "Categories & Sub Categories",
+    icon: FolderTree,
   },
 ];
 
