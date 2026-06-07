@@ -109,9 +109,9 @@ export default function ProductCatalogClient({
   const [selectedParentCategory, setSelectedParentCategory] = useState("all");
   const [selectedSubcategory, setSelectedSubcategory] = useState("all");
   const deferredSearchTerm = useDeferredValue(searchTerm);
-  const categoryParam = searchParams.get("category")?.trim() ?? "";
-  const subcategoryParam = searchParams.get("subcategory")?.trim() ?? "";
-  const searchParam = searchParams.get("search")?.trim() ?? "";
+  const categoryParam = searchParams?.get("category")?.trim() ?? "";
+  const subcategoryParam = searchParams?.get("subcategory")?.trim() ?? "";
+  const searchParam = searchParams?.get("search")?.trim() ?? "";
 
   const parentCategoryOptions = useMemo(() => {
     const options: ParentCategoryOption[] = [
@@ -237,7 +237,7 @@ export default function ProductCatalogClient({
     nextParentCategory: string,
     nextSubcategory: string
   ) {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchParams?.toString());
     const trimmedSearch = nextSearchTerm.trim();
 
     if (trimmedSearch) {
@@ -260,9 +260,10 @@ export default function ProductCatalogClient({
     }
 
     const nextQuery = params.toString();
+    const currentPathname = pathname ?? "";
 
     startTransition(() => {
-      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      router.replace(nextQuery ? `${currentPathname}?${nextQuery}` : currentPathname, {
         scroll: false,
       });
     });
@@ -283,9 +284,10 @@ export default function ProductCatalogClient({
     setSearchTerm("");
     setSelectedParentCategory("all");
     setSelectedSubcategory("all");
+    const currentPathname = pathname ?? "";
 
     startTransition(() => {
-      router.replace(pathname, { scroll: false });
+      router.replace(currentPathname, { scroll: false });
     });
   }
 

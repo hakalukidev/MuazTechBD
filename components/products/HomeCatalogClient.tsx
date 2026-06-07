@@ -54,7 +54,7 @@ export default function HomeCatalogClient({
   initialProducts,
 }: HomeCatalogClientProps) {
   const searchParams = useSearchParams();
-  const urlCategory = searchParams.get("category");
+  const urlCategory = searchParams?.get("category") ?? null;
   
   const { data: products = [], isPending: isLoading } =
     useProductsQuery(initialProducts);

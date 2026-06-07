@@ -32,14 +32,16 @@ const navigationItems = [
 
 export default function AdminSidebarNav() {
   const pathname = usePathname();
+  const currentPathname = pathname ?? "";
 
   return (
     <nav className="space-y-2">
       {navigationItems.map((item) => {
         const Icon = item.icon;
         const isActive =
-          pathname === item.href ||
-          (item.href !== "/admin/products" && pathname.startsWith(item.href));
+          currentPathname === item.href ||
+          (item.href !== "/admin/products" &&
+            currentPathname.startsWith(item.href));
 
         return (
           <Link
