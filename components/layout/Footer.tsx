@@ -19,7 +19,7 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Quick Links - যোগ করলাম */}
+          {/* Quick Links */}
           <div className="text-center sm:text-left">
             <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4">Quick Links</h3>
             <ul className="space-y-2">
@@ -30,7 +30,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact Info */}
+          {/* Contact Info - Updated with 4 numbers */}
           <div className="text-center sm:text-left">
             <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4">Contact Info</h3>
             <div className="space-y-2">
@@ -41,6 +41,18 @@ export default function Footer() {
               <p className="text-gray-400 text-sm flex items-center justify-center sm:justify-start gap-2">
                 <Phone size={14} className="shrink-0" />
                 <span>+88 01897914480</span>
+              </p>
+              <p className="text-gray-400 text-sm flex items-center justify-center sm:justify-start gap-2">
+                <Phone size={14} className="shrink-0" />
+                <span>+88 01897914481</span>
+              </p>
+              <p className="text-gray-400 text-sm flex items-center justify-center sm:justify-start gap-2">
+                <Phone size={14} className="shrink-0" />
+                <span>+88 01897914482</span>
+              </p>
+              <p className="text-gray-400 text-sm flex items-center justify-center sm:justify-start gap-2">
+                <Phone size={14} className="shrink-0" />
+                <span>+88 01897914483</span>
               </p>
               <p className="text-gray-400 text-sm flex items-center justify-center sm:justify-start gap-2">
                 <Mail size={14} className="shrink-0" />
@@ -103,7 +115,7 @@ export default function Footer() {
               &copy; {new Date().getFullYear()} Muaz Technology. All rights reserved.
             </p>
             <p className="text-gray-500 text-xs">
-              Developed by <a href="https://hakaluki.dev" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition">hakaluki.dev</a>
+              Developed by <a href="https://hakaluki-devs.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition">hakaluki.devs</a>
             </p>
           </div>
         </div>

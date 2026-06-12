@@ -62,22 +62,35 @@ export default function ContactPage() {
                 </div>
               </div>
 
-              {/* Phone */}
+              {/* Phone - Updated with 4 numbers */}
               <div className="flex gap-4 items-start">
                 <div className="bg-white/20 p-3 rounded-lg flex-shrink-0">
                   <Phone size={22} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-1">Phone Number</h3>
-                  <p className="text-blue-100 text-sm">
-                    <a href="tel:+8801897914480" className="hover:underline">
-                      +88 01897914480
-                    </a>
-                    <br />
-                    <a href="tel:+8801897914481" className="hover:underline">
-                      +88 01897914481
-                    </a>
-                  </p>
+                  <h3 className="font-semibold text-lg mb-1">Phone Numbers</h3>
+                  <div className="space-y-1 text-blue-100 text-sm">
+                    <p>
+                      <a href="tel:+8801897914480" className="hover:underline">
+                        +88 01897914480
+                      </a>
+                    </p>
+                    <p>
+                      <a href="tel:+8801897914481" className="hover:underline">
+                        +88 01897914481
+                      </a>
+                    </p>
+                    <p>
+                      <a href="tel:+8801897914482" className="hover:underline">
+                        +88 01897914482
+                      </a>
+                    </p>
+                    <p>
+                      <a href="tel:+8801897914483" className="hover:underline">
+                        +88 01897914483
+                      </a>
+                    </p>
+                  </div>
                 </div>
               </div>
 
