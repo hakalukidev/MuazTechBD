@@ -3,16 +3,15 @@ import type { DocumentData, DocumentSnapshot, QueryDocumentSnapshot, Timestamp }
 export const PRODUCTS_COLLECTION = "products";
 
 export const PRODUCT_CATEGORIES = [
-  "Diagnostic Scanners",
-  "Workshop Equipment",
-  "Hand Tools",
-  "Testing Equipment",
-  "Denting & Painting",
-  "Diagnostic and Checking",
-  "Lifting Equipment",
-  "Repairing Equipment",
-  "Supporting Equipment",
-  "Uncategorized",
+  "Lift Series",
+  "Fuel & Transmission Series",
+  "A/C & Lubricant Series",
+  "Wheel Equipment Series",
+  "Washing Equipment Series",
+  "Diagnostic Equipment Series (Car Series)",
+  "Diagnostic Equipment Series (Bike Series)",
+  "Regular Maintenance Equipment",
+  "Special Tool Kit Series",
 ] as const;
 
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
@@ -101,4 +100,21 @@ export function sortProducts(products: Product[]) {
 
     return rightValue - leftValue;
   });
+}
+
+export function getProductCategories(products: Product[]) {
+  const seen = new Set<string>();
+
+  return products.reduce<string[]>((categories, product) => {
+    const category = product.category.trim();
+
+    if (!category || seen.has(category)) {
+      return categories;
+    }
+
+    seen.add(category);
+    categories.push(category);
+
+    return categories;
+  }, []);
 }

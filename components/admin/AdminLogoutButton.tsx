@@ -1,8 +1,9 @@
+// components/admin/AdminLogoutButton.tsx
 "use client";
 
-import { useState } from "react";
 import { Loader2, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -28,7 +29,7 @@ export default function AdminLogoutButton() {
     <Button
       type="button"
       variant="ghost"
-      className="w-full justify-start text-slate-300 hover:bg-slate-800 hover:text-white"
+      className="w-full justify-start text-blue-300 hover:bg-blue-900 hover:text-white"
       onClick={handleLogout}
       disabled={isSubmitting}
     >

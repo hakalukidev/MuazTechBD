@@ -1,5 +1,8 @@
 import AdminCreateProductPage from "@/components/admin/AdminCreateProductPage";
+import { getAllCategories } from "@/lib/category-service";
 
-export default function AdminNewProductRoute() {
-  return <AdminCreateProductPage />;
+export default async function AdminNewProductRoute() {
+  const initialCategories = await getAllCategories();
+
+  return <AdminCreateProductPage initialCategories={initialCategories} />;
 }

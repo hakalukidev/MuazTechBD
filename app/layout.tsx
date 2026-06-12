@@ -3,6 +3,7 @@ import QueryProvider from '@/components/providers/QueryProvider'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 // @ts-ignore - global stylesheet import is handled by Next.js
+import FacebookPixel from '@/components/pixel/FacebookPixel'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -22,8 +23,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="bn">
+      <head>
+        {/* Facebook Pixel Noscript Fallback */}
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style={{ display: 'none' }}
+            src="https://www.facebook.com/tr?id=688934052520021&ev=PageView&noscript=1"
+            alt=""
+          />
+        </noscript>
+      </head>
       <body className={inter.className}>
         <QueryProvider>
+          <FacebookPixel />
           <AppShell>{children}</AppShell>
         </QueryProvider>
       </body>

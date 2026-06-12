@@ -1,10 +1,6 @@
 import type { ReactNode } from "react";
-import { BarChart3 } from "lucide-react";
-import { redirect } from "next/navigation";
 
-import AdminSidebarNav from "@/components/admin/AdminSidebarNav";
-import AdminLogoutButton from "@/components/admin/AdminLogoutButton";
-import { isAdminAuthenticated } from "@/lib/admin-auth";
+import AdminShell from "@/components/admin/AdminShell";
 
 type ProtectedAdminLayoutProps = {
   children: ReactNode;
@@ -13,40 +9,5 @@ type ProtectedAdminLayoutProps = {
 export default function ProtectedAdminLayout({
   children,
 }: ProtectedAdminLayoutProps) {
-  if (!isAdminAuthenticated()) {
-    redirect("/admin/login");
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto grid min-h-screen max-w-[1600px] lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="border-b border-slate-800 bg-slate-950/95 px-6 py-8 lg:sticky lg:top-0 lg:h-screen lg:self-start lg:border-b-0 lg:border-r">
-          <div className="flex min-h-full flex-col gap-6">
-            <div className="space-y-3">
-              <span className="inline-flex rounded-full border border-slate-700 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-slate-300">
-                Admin Panel
-              </span>
-              <div>
-                <h1 className="text-2xl font-semibold text-white">Muaz Admin</h1>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Manage your product catalog, pricing, images, and featured
-                  items from one place.
-                </p>
-              </div>
-            </div>
-
-            <AdminSidebarNav />
-
-            <div className="mt-auto">
-              <AdminLogoutButton />
-            </div>
-          </div>
-        </aside>
-
-        <main className="bg-slate-100 px-4 py-6 text-slate-900 sm:px-6 lg:px-10 lg:py-8">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+  return <AdminShell>{children}</AdminShell>;
 }

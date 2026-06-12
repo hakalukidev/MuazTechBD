@@ -72,7 +72,7 @@ export default function Footer() {
                 <FaTwitter size={18} className="md:w-5 md:h-5" />
               </a>
               <a 
-                href="#" 
+                href="https://youtube.com/@muaztechnology3326" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="bg-gray-800 p-2 rounded-full hover:bg-red-600 transition-colors duration-300"
@@ -103,7 +103,7 @@ export default function Footer() {
               &copy; {new Date().getFullYear()} Muaz Technology. All rights reserved.
             </p>
             <p className="text-gray-500 text-xs">
-              Designed with ❤️ for quality service
+              Developed by <a href="https://hakaluki.dev" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition">hakaluki.dev</a>
             </p>
           </div>
         </div>

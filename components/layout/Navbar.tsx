@@ -1,13 +1,39 @@
-'use client';
+"use client";
 
-import { ChevronDown, Menu, Search, Settings, X } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useState } from 'react';
+import { ChevronDown, ChevronRight, Menu, Search, Settings, X } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import ProductSearchBox from "@/components/layout/ProductSearchBox";
+import { useCategoriesQuery } from "@/hooks/use-categories-query";
+import { useProductsQuery } from "@/hooks/use-products-query";
+import { getProductCategories } from "@/lib/products";
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isBrowseCategoriesOpen, setIsBrowseCategoriesOpen] = useState(false);
+  const browseDropdownRef = useRef<HTMLDivElement>(null);
+  const { data: products = [] } = useProductsQuery();
+  const { data: managedCategories = [] } = useCategoriesQuery();
+  const categoryOptions = useMemo(
+    () =>
+      managedCategories.length > 0
+        ? managedCategories.map((category) => category.name)
+        : getProductCategories(products),
+    [managedCategories, products]
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (browseDropdownRef.current && !browseDropdownRef.current.contains(event.target as Node)) {
+        setIsBrowseCategoriesOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
@@ -34,30 +60,54 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Garage Equipments Dropdown */}
-          <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded text-sm font-semibold text-gray-700 transition whitespace-nowrap">
-            <Settings size={15} className="text-blue-600" />
-            GARAGE EQUIPMENT&apos;S
-            <ChevronDown size={13} />
-          </button>
+        
 
-          {/* Browse Categories */}
-          <button className="flex items-center gap-2 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded text-sm font-semibold text-gray-700 transition whitespace-nowrap">
-            <Menu size={15} />
-            BROWSE IN CATEGORIES
-            <ChevronDown size={13} />
-          </button>
-
-          {/* Search */}
-          <div className="flex items-center border border-gray-300 rounded overflow-hidden w-72">
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="flex-1 px-3 py-2 text-sm outline-none"
-            />
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2">
-              <Search size={15} />
+          <div className="relative" ref={browseDropdownRef}>
+            <button
+              onClick={() => setIsBrowseCategoriesOpen(!isBrowseCategoriesOpen)}
+              className="flex items-center gap-2 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded text-sm font-semibold text-gray-700 transition whitespace-nowrap"
+            >
+              <Menu size={15} />
+              BROWSE IN CATEGORIES
+              <ChevronDown size={13} className={`transition-transform ${isBrowseCategoriesOpen ? "rotate-180" : ""}`} />
             </button>
+
+            {isBrowseCategoriesOpen && (
+              <div className="absolute left-0 top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                <div className="px-3 py-2 border-b border-gray-100">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Shop by Category
+                  </h3>
+                </div>
+                <ul className="py-1">
+                  <li>
+                    <Link
+                      href="/products"
+                      className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                      onClick={() => setIsBrowseCategoriesOpen(false)}
+                    >
+                      <span>All Products</span>
+                      <ChevronRight size={14} />
+                    </Link>
+                  </li>
+                  {categoryOptions.map((category) => (
+                    <li key={category}>
+                      <Link
+                        href={`/products?category=${encodeURIComponent(category)}`}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                        onClick={() => setIsBrowseCategoriesOpen(false)}
+                      >
+                        {category}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div className="w-72">
+            <ProductSearchBox products={products} />
           </div>
         </div>
 
@@ -85,13 +135,13 @@ export default function Navbar() {
 
           {/* Mobile Icons */}
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
               className="p-2 hover:bg-gray-100 rounded-full"
             >
               <Search size={18} className="text-gray-600" />
             </button>
-            <button 
+            <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 hover:bg-gray-100 rounded-full"
             >
@@ -103,23 +153,17 @@ export default function Navbar() {
         {/* Mobile Search Bar */}
         {isSearchOpen && (
           <div className="lg:hidden mt-3">
-            <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-              <input
-                type="text"
-                placeholder="Search products..."
-                className="flex-1 px-3 py-2 text-sm outline-none"
-                autoFocus
-              />
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2">
-                <Search size={16} />
-              </button>
-            </div>
+            <ProductSearchBox
+              products={products}
+              onNavigate={() => setIsSearchOpen(false)}
+            />
           </div>
         )}
 
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="lg:hidden mt-3 space-y-2">
+            {/* Garage Equipments button */}
             <button className="w-full flex items-center justify-between gap-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded text-sm font-semibold text-gray-700 transition">
               <span className="flex items-center gap-2">
                 <Settings size={16} className="text-blue-600" />
@@ -127,20 +171,85 @@ export default function Navbar() {
               </span>
               <ChevronDown size={14} />
             </button>
-            
-            <button className="w-full flex items-center justify-between gap-2 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded text-sm font-semibold text-gray-700 transition">
-              <span className="flex items-center gap-2">
-                <Menu size={16} />
-                BROWSE IN CATEGORIES
-              </span>
-              <ChevronDown size={14} />
-            </button>
 
+            <div>
+              <button
+                onClick={() => setIsBrowseCategoriesOpen(!isBrowseCategoriesOpen)}
+                className="w-full flex items-center justify-between gap-2 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded text-sm font-semibold text-gray-700 transition"
+              >
+                <span className="flex items-center gap-2">
+                  <Menu size={16} />
+                  BROWSE IN CATEGORIES
+                </span>
+                <ChevronDown size={14} className={`transition-transform ${isBrowseCategoriesOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {isBrowseCategoriesOpen && (
+                <div className="mt-2 ml-4 space-y-1 border-l-2 border-blue-200 pl-3">
+                  <Link
+                    href="/products"
+                    className="block py-2 text-sm text-gray-600 hover:text-blue-600"
+                    onClick={() => {
+                      setIsBrowseCategoriesOpen(false);
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    All Products
+                  </Link>
+                  {categoryOptions.map((category) => (
+                    <Link
+                      key={category}
+                      href={`/products?category=${encodeURIComponent(category)}`}
+                      className="block py-2 text-sm text-gray-600 hover:text-blue-600"
+                      onClick={() => {
+                        setIsBrowseCategoriesOpen(false);
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      {category}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Bottom navigation links */}
             <div className="pt-2 border-t border-gray-200">
-              <Link href="/" className="block py-2 text-sm text-gray-600 hover:text-blue-600">Home</Link>
-              <Link href="/products" className="block py-2 text-sm text-gray-600 hover:text-blue-600">Products</Link>
-              <Link href="/about" className="block py-2 text-sm text-gray-600 hover:text-blue-600">About</Link>
-              <Link href="/contact" className="block py-2 text-sm text-gray-600 hover:text-blue-600">Contact</Link>
+              <Link
+                href="/"
+                className="block py-2 text-sm text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link
+                href="/products"
+                className="block py-2 text-sm text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Products
+              </Link>
+              <Link
+                href="/about"
+                className="block py-2 text-sm text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                About
+              </Link>
+              <Link
+                href="/contact"
+                className="block py-2 text-sm text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Contact
+              </Link>
+              <Link
+                href="/blog"
+                className="block py-2 text-sm text-gray-600 hover:text-blue-600"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Blog
+              </Link>
             </div>
           </div>
         )}

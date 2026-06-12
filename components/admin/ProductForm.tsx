@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ImageIcon, Loader2, Save } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -23,7 +23,11 @@ import {
   extractCloudinaryPublicId,
   resolveProductPhotoPublicId,
 } from "@/lib/product-images";
-import { PRODUCT_CATEGORIES, type Product, type ProductInput } from "@/lib/products";
+import {
+  getCategoryKey,
+  type ManagedCategoryOption,
+} from "@/lib/categories";
+import { type Product, type ProductInput } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
 export const productFormSchema = z.object({
@@ -42,7 +46,7 @@ export type ProductFormValues = z.infer<typeof productFormSchema>;
 
 export const emptyProductFormValues: ProductFormValues = {
   name: "",
-  category: PRODUCT_CATEGORIES[0],
+  category: "",
   price: "Contact for Price",
   description: "",
   details: "",
@@ -55,7 +59,7 @@ export const emptyProductFormValues: ProductFormValues = {
 export function toProductFormValues(product: Product): ProductFormValues {
   return {
     name: product.name,
-    category: product.category || PRODUCT_CATEGORIES[0],
+    category: product.category || "",
     price: product.price,
     description: product.description,
     details: product.details,
@@ -84,6 +88,8 @@ export function toProductInput(values: ProductFormValues): ProductInput {
 }
 
 type ProductFormProps = {
+  categoriesLoading?: boolean;
+  categoryOptions?: ManagedCategoryOption[];
   defaultValues?: ProductFormValues;
   layout?: "page" | "dialog";
   onSubmit: (values: ProductFormValues) => Promise<void>;
@@ -93,6 +99,8 @@ type ProductFormProps = {
 };
 
 export default function ProductForm({
+  categoriesLoading = false,
+  categoryOptions = [],
   defaultValues = emptyProductFormValues,
   layout = "page",
   onSubmit,
@@ -108,6 +116,7 @@ export default function ProductForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const previewUrl = form.watch("photoUrl");
   const previewName = form.watch("name");
+  const selectedCategory = form.watch("category");
   const photoPublicIdField = form.register("photoPublicId");
   const uploadedImagesRef = useRef(
     new Map<string, { photoUrl: string; photoPublicId: string }>()
@@ -131,6 +140,44 @@ export default function ProductForm({
       });
     };
   }, []);
+
+  useEffect(() => {
+    if (form.getValues("category").trim() || categoryOptions.length === 0) {
+      return;
+    }
+
+    form.setValue("category", categoryOptions[0].value, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [categoryOptions, form]);
+
+  const resolvedCategoryOptions = (() => {
+    const currentCategory = selectedCategory.trim();
+
+    if (!currentCategory) {
+      return categoryOptions;
+    }
+
+    const currentCategoryKey = getCategoryKey(currentCategory);
+
+    if (
+      categoryOptions.some((option) => getCategoryKey(option.value) === currentCategoryKey)
+    ) {
+      return categoryOptions;
+    }
+
+    return [
+      {
+        label: `${currentCategory} (current value)`,
+        parentName: null,
+        type: "main" as const,
+        value: currentCategory,
+      },
+      ...categoryOptions,
+    ];
+  })();
 
   function rememberUploadedImage(image: { photoUrl: string; photoPublicId: string }) {
     if (!image.photoPublicId.trim()) {
@@ -259,9 +306,9 @@ export default function ProductForm({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Product name</FormLabel>
+                    <FormLabel className="text-blue-700">Product name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Autel MX808S" {...field} />
+                      <Input placeholder="Autel MX808S" {...field} className="focus-visible:ring-blue-500" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -272,9 +319,9 @@ export default function ProductForm({
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price</FormLabel>
+                    <FormLabel className="text-blue-700">Price</FormLabel>
                     <FormControl>
-                      <Input placeholder="Contact for Price" {...field} />
+                      <Input placeholder="Contact for Price" {...field} className="focus-visible:ring-blue-500" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -287,19 +334,35 @@ export default function ProductForm({
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel className="text-blue-700">Category</FormLabel>
                   <FormControl>
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="flex h-10 w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-blue-900 ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                      disabled={categoriesLoading && resolvedCategoryOptions.length === 0}
                       {...field}
                     >
-                      {PRODUCT_CATEGORIES.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
+                      <option value="" disabled>
+                        {categoriesLoading
+                          ? "Loading categories..."
+                          : resolvedCategoryOptions.length > 0
+                            ? "Select a category"
+                            : "Add a category first"}
+                      </option>
+                      {resolvedCategoryOptions.map((categoryOption) => (
+                        <option
+                          key={`${categoryOption.type}:${categoryOption.value}`}
+                          value={categoryOption.value}
+                        >
+                          {categoryOption.label}
                         </option>
                       ))}
                     </select>
                   </FormControl>
+                  <p className="text-sm text-blue-500">
+                    {resolvedCategoryOptions.length > 0
+                      ? "Main categories and subcategories come from the Categories admin page."
+                      : "Create a category group first, then return here to assign products."}
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -310,10 +373,11 @@ export default function ProductForm({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Short description</FormLabel>
+                  <FormLabel className="text-blue-700">Short description</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Professional diagnostic scanner for all car models."
+                      className="focus-visible:ring-blue-500"
                       {...field}
                     />
                   </FormControl>
@@ -327,11 +391,11 @@ export default function ProductForm({
               name="details"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Details</FormLabel>
+                  <FormLabel className="text-blue-700">Details</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Add longer product details, specifications, and selling points."
-                      className="min-h-[160px]"
+                      className="min-h-[160px] focus-visible:ring-blue-500"
                       {...field}
                     />
                   </FormControl>
@@ -345,11 +409,11 @@ export default function ProductForm({
               name="keyHighlights"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Key highlights (one per line)</FormLabel>
+                  <FormLabel className="text-blue-700">Key highlights (one per line)</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="High-resolution product imagery\nProfessional workshop-ready presentation"
-                      className="min-h-[120px]"
+                      className="min-h-[120px] focus-visible:ring-blue-500"
                       {...field}
                     />
                   </FormControl>
@@ -363,11 +427,12 @@ export default function ProductForm({
               name="photoUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product image</FormLabel>
+                  <FormLabel className="text-blue-700">Product image</FormLabel>
                   <div className="flex flex-col gap-3 md:flex-row">
                     <FormControl>
                       <Input
                         placeholder="https://images.example.com/product.jpg"
+                        className="focus-visible:ring-blue-500"
                         {...field}
                         onChange={(event) => {
                           const nextUrl = event.target.value;
@@ -391,7 +456,7 @@ export default function ProductForm({
                       }}
                     />
                   </div>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-blue-500">
                     {hasExistingPhoto
                       ? "Use Change photo to upload a replacement image. After you save, the old Cloudinary image is removed automatically."
                       : "Upload a new image or paste a direct image URL. You can replace the upload before saving if needed."}
@@ -407,11 +472,12 @@ export default function ProductForm({
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    <label className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={field.value}
                         onChange={(event) => field.onChange(event.target.checked)}
+                        className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
                       />
                       Highlight this product in featured sections
                     </label>
@@ -420,22 +486,22 @@ export default function ProductForm({
               )}
             />
 
-            <Button className="w-full md:w-auto" type="submit" disabled={isSubmitting}>
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 md:w-auto" type="submit" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="animate-spin" /> : <Save />}
               {isSubmitting ? pendingLabel : submitLabel}
             </Button>
           </div>
 
           <div className="space-y-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="rounded-2xl border border-blue-200 bg-white p-4 shadow-sm">
               <div className="mb-3">
-                <p className="text-sm font-medium text-slate-950">Image preview</p>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm font-medium text-blue-950">Image preview</p>
+                <p className="text-sm text-blue-500">
                   Review the product image before you save changes.
                 </p>
               </div>
               {previewUrl ? (
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                <div className="overflow-hidden rounded-2xl border border-blue-200 bg-blue-50">
                   <img
                     src={previewUrl}
                     alt={previewName || "Uploaded product preview"}
@@ -443,7 +509,7 @@ export default function ProductForm({
                   />
                 </div>
               ) : (
-                <div className="flex h-72 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-500">
+                <div className="flex h-72 items-center justify-center rounded-2xl border border-dashed border-blue-300 bg-blue-50 text-blue-500">
                   <div className="flex flex-col items-center gap-3 text-center">
                     <ImageIcon className="h-10 w-10" />
                     <p>Upload an image to preview it here.</p>

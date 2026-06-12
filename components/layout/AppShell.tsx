@@ -14,7 +14,7 @@ type AppShellProps = {
 
 export default function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const isAdminRoute = pathname.startsWith("/admin");
+  const isAdminRoute = (pathname ?? "").startsWith("/admin");
 
   return (
     <>
