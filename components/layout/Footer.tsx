@@ -44,7 +44,7 @@ export default function Footer() {
               </p>
               <p className="text-gray-400 text-sm flex items-center justify-center sm:justify-start gap-2">
                 <Mail size={14} className="shrink-0" />
-                <span>info@muazbd.net</span>
+                <span>info@muazbd.com</span>
               </p>
             </div>
           </div>

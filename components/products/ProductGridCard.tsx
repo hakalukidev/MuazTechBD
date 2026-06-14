@@ -50,9 +50,12 @@ export default function ProductGridCard({
           <p className="text-xs font-semibold text-slate-900">
             {product.price}
           </p>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-700">
+          <Link
+            href={`/product/${product.id}`}
+            className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-700 transition hover:text-blue-900"
+          >
             View item
-          </span>
+          </Link>
         </div>
       </div>
     </article>

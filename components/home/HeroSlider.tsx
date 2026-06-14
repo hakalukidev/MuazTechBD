@@ -1,21 +1,55 @@
 'use client';
 
-import { slides } from '@/lib/home-data';
+import { fallbackSlides } from "@/lib/home-data";
+import { getAllSlides } from "@/lib/slide-service";
+import { type Slide } from "@/lib/slides";
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export default function HeroSlider() {
+  const [slides, setSlides] = useState<Slide[]>(fallbackSlides);
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
+    async function loadSlides() {
+      try {
+        const nextSlides = await getAllSlides();
+        const activeSlides = nextSlides.filter((slide) => slide.isActive && slide.image);
+
+        if (activeSlides.length > 0) {
+          setSlides(activeSlides);
+        }
+      } catch {
+        setSlides(fallbackSlides);
+      }
+    }
+
+    void loadSlides();
+  }, []);
+
+  useEffect(() => {
+    if (slides.length === 0) {
+      return;
+    }
+
     const t = setInterval(() => setCurrent((p) => (p + 1) % slides.length), 5000);
     return () => clearInterval(t);
-  }, []);
+  }, [slides]);
+
+  useEffect(() => {
+    if (current >= slides.length) {
+      setCurrent(0);
+    }
+  }, [current, slides.length]);
 
   const prev = () => setCurrent((p) => (p - 1 + slides.length) % slides.length);
   const next = () => setCurrent((p) => (p + 1) % slides.length);
   const activeSlide = slides[current];
+
+  if (!activeSlide) {
+    return null;
+  }
 
   return (
     <section className={`${activeSlide.bg} overflow-hidden`}>

@@ -1,9 +1,10 @@
 "use client";
 
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Loader2, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import CloudinaryUploadButton from "@/components/admin/CloudinaryUploadButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -24,81 +25,74 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { toast } from "@/hooks/use-toast";
+import { fallbackSlides } from "@/lib/home-data";
+import { deleteManagedSlideImage } from "@/lib/slide-image-service";
+import { createSlide, deleteSlide, getAllSlides, updateSlide } from "@/lib/slide-service";
+import { sortSlides, type Slide, type SlideInput } from "@/lib/slides";
 
-type SlideRow = {
-  id: number;
-  title: string;
-  image: string;
-  order: number;
-  isActive: boolean;
-};
+type SlideRow = Slide;
 
 type SlideFormValues = {
   title: string;
   image: string;
+  imagePublicId: string;
   order: string;
   isActive: boolean;
 };
-
-const initialSlides: SlideRow[] = [
-  {
-    id: 1,
-    title: "Premium Garage Equipment",
-    image: "/images/slides/Slide-1.jpeg",
-    order: 1,
-    isActive: true,
-  },
-  {
-    id: 2,
-    title: "Tailored solutions for Bangladesh",
-    image: "/images/slides/Slide-2.png",
-    order: 2,
-    isActive: true,
-  },
-  {
-    id: 3,
-    title: "Trusted Tools from Global Brands",
-    image: "/images/slides/Slide-3.jpg",
-    order: 3,
-    isActive: true,
-  },
-];
-
-function sortSlides(slides: SlideRow[]) {
-  return [...slides].sort((left, right) => {
-    if (left.order === right.order) {
-      return left.id - right.id;
-    }
-
-    return left.order - right.order;
-  });
-}
 
 function createEmptyFormValues(nextOrder: number): SlideFormValues {
   return {
     title: "",
     image: "",
+    imagePublicId: "",
     order: String(nextOrder),
     isActive: true,
   };
 }
 
 export default function AdminSlidesPage() {
-  const [slides, setSlides] = useState(() => sortSlides(initialSlides));
+  const [slides, setSlides] = useState<SlideRow[]>(() => sortSlides(fallbackSlides));
   const [editingSlide, setEditingSlide] = useState<SlideRow | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [formValues, setFormValues] = useState<SlideFormValues>(() =>
-    createEmptyFormValues(initialSlides.length + 1)
-  );
+  const [isLoadingSlides, setIsLoadingSlides] = useState(true);
+  const [isSavingSlide, setIsSavingSlide] = useState(false);
+  const [deletingSlideId, setDeletingSlideId] = useState<string | null>(null);
+  const [formValues, setFormValues] = useState<SlideFormValues>(() => createEmptyFormValues(1));
 
-  const nextSlideId = useMemo(
-    () => slides.reduce((maxId, slide) => Math.max(maxId, slide.id), 0) + 1,
+  const nextSlideOrder = useMemo(
+    () => slides.reduce((maxOrder, slide) => Math.max(maxOrder, slide.order), 0) + 1,
     [slides]
   );
 
+  useEffect(() => {
+    async function loadSlides() {
+      try {
+        const nextSlides = await getAllSlides();
+
+        if (nextSlides.length > 0) {
+          setSlides(nextSlides);
+        } else {
+          setSlides(sortSlides(fallbackSlides));
+        }
+      } catch {
+        toast({
+          title: "Could not load slides",
+          description: "Showing fallback slides for now.",
+          variant: "destructive",
+        });
+        setSlides(sortSlides(fallbackSlides));
+      } finally {
+        setIsLoadingSlides(false);
+      }
+    }
+
+    void loadSlides();
+  }, []);
+
   function openCreateDialog() {
     setEditingSlide(null);
-    setFormValues(createEmptyFormValues(slides.length + 1));
+    setFormValues(createEmptyFormValues(nextSlideOrder));
     setIsFormOpen(true);
   }
 
@@ -107,13 +101,14 @@ export default function AdminSlidesPage() {
     setFormValues({
       title: slide.title,
       image: slide.image,
+      imagePublicId: slide.imagePublicId,
       order: String(slide.order),
       isActive: slide.isActive,
     });
     setIsFormOpen(true);
   }
 
-  function handleDeleteSlide(id: number) {
+  async function handleDeleteSlide(id: string) {
     const slide = slides.find((currentSlide) => currentSlide.id === id);
 
     if (!slide) {
@@ -126,40 +121,122 @@ export default function AdminSlidesPage() {
       return;
     }
 
-    setSlides((currentSlides) => currentSlides.filter((currentSlide) => currentSlide.id !== id));
+    setDeletingSlideId(id);
+
+    try {
+      await deleteSlide(id);
+      setSlides((currentSlides) => currentSlides.filter((currentSlide) => currentSlide.id !== id));
+
+      try {
+        await deleteManagedSlideImage(slide);
+      } catch {
+        // Keep the delete success path even if image cleanup fails.
+      }
+
+      toast({
+        title: "Slide deleted",
+        description: "The slide was removed successfully.",
+      });
+    } catch {
+      toast({
+        title: "Delete failed",
+        description: "The slide could not be removed right now.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingSlideId(null);
+    }
   }
 
-  function handleSaveSlide(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSaveSlide(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmedTitle = formValues.title.trim();
     const trimmedImage = formValues.image.trim();
+    const trimmedImagePublicId = formValues.imagePublicId.trim();
     const parsedOrder = Number.parseInt(formValues.order, 10);
 
     if (!trimmedTitle || !trimmedImage || Number.isNaN(parsedOrder) || parsedOrder < 1) {
+      toast({
+        title: "Missing slide details",
+        description: "Please add a title, upload an image, and enter a valid order.",
+        variant: "destructive",
+      });
       return;
     }
 
-    const nextSlide: SlideRow = {
-      id: editingSlide ? editingSlide.id : nextSlideId,
+    const nextSlideInput: SlideInput = {
       title: trimmedTitle,
       image: trimmedImage,
+      imagePublicId: trimmedImagePublicId,
       order: parsedOrder,
       isActive: formValues.isActive,
+      tag: editingSlide?.tag ?? "Featured",
+      cta: editingSlide?.cta ?? "VIEW PRODUCTS",
+      ctaHref: editingSlide?.ctaHref ?? "/products",
+      bg: editingSlide?.bg ?? "bg-slate-100",
     };
 
-    setSlides((currentSlides) => {
+    setIsSavingSlide(true);
+
+    try {
       if (editingSlide) {
-        return sortSlides(
-          currentSlides.map((slide) => (slide.id === editingSlide.id ? nextSlide : slide))
+        const previousImagePublicId = editingSlide.imagePublicId.trim();
+        const imageChanged =
+          editingSlide.image.trim() !== trimmedImage ||
+          previousImagePublicId !== trimmedImagePublicId;
+
+        await updateSlide(editingSlide.id, nextSlideInput);
+
+        const nextSlide: SlideRow = {
+          ...editingSlide,
+          ...nextSlideInput,
+          updatedAtMs: Date.now(),
+        };
+
+        setSlides((currentSlides) =>
+          sortSlides(
+            currentSlides.map((slide) => (slide.id === editingSlide.id ? nextSlide : slide))
+          )
         );
+
+        if (imageChanged && previousImagePublicId) {
+          try {
+            await deleteManagedSlideImage({
+              imagePublicId: previousImagePublicId,
+            });
+          } catch {
+            // The slide save should still succeed even if the old asset cleanup fails.
+          }
+        }
+      } else {
+        const createdSlide = await createSlide(nextSlideInput);
+        const nextSlide: SlideRow = {
+          id: createdSlide.id,
+          ...nextSlideInput,
+          createdAtMs: Date.now(),
+          updatedAtMs: Date.now(),
+        };
+
+        setSlides((currentSlides) => sortSlides([...currentSlides, nextSlide]));
       }
 
-      return sortSlides([...currentSlides, nextSlide]);
-    });
-
-    setIsFormOpen(false);
-    setEditingSlide(null);
+      setIsFormOpen(false);
+      setEditingSlide(null);
+      setFormValues(createEmptyFormValues(nextSlideOrder));
+      toast({
+        title: editingSlide ? "Slide updated" : "Slide created",
+        description: "The slide was saved successfully.",
+      });
+    } catch {
+      toast({
+        title: "Save failed",
+        description: "The slide could not be saved right now.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingSlide(false);
+    }
   }
 
   return (
@@ -184,6 +261,12 @@ export default function AdminSlidesPage() {
           <CardTitle className="text-lg text-blue-950">Slides Data Table</CardTitle>
         </CardHeader>
         <CardContent>
+          {isLoadingSlides ? (
+            <div className="flex items-center gap-2 py-10 text-sm text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading slides...
+            </div>
+          ) : null}
           <Table>
             <TableHeader>
               <TableRow>
@@ -236,9 +319,14 @@ export default function AdminSlidesPage() {
                         variant="outline"
                         size="icon"
                         className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50"
+                        disabled={deletingSlideId === slide.id}
                         onClick={() => handleDeleteSlide(slide.id)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {deletingSlideId === slide.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </TableCell>
@@ -275,18 +363,38 @@ export default function AdminSlidesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="slide-image">Image path</Label>
-              <Input
-                id="slide-image"
-                value={formValues.image}
-                onChange={(event) =>
-                  setFormValues((currentValues) => ({
-                    ...currentValues,
-                    image: event.target.value,
-                  }))
-                }
-                placeholder="/images/slides/Slide-1.jpeg"
-              />
+              <Label>Slide image</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                <CloudinaryUploadButton
+                  label={formValues.image ? "Replace image" : "Upload image"}
+                  disabled={isSavingSlide}
+                  onUploaded={({ url, publicId }) =>
+                    setFormValues((currentValues) => ({
+                      ...currentValues,
+                      image: url,
+                      imagePublicId: publicId,
+                    }))
+                  }
+                />
+                {formValues.image ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setFormValues((currentValues) => ({
+                        ...currentValues,
+                        image: "",
+                        imagePublicId: "",
+                      }))
+                    }
+                  >
+                    Remove image
+                  </Button>
+                ) : null}
+              </div>
+              <p className="text-sm text-slate-500">
+                Upload the slide image to Cloudinary instead of entering a local file path.
+              </p>
               {formValues.image ? (
                 <div className="relative h-32 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                   <Image
@@ -339,7 +447,8 @@ export default function AdminSlidesPage() {
               <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={isSavingSlide}>
+                {isSavingSlide ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 {editingSlide ? "Save Changes" : "Create Slide"}
               </Button>
             </DialogFooter>

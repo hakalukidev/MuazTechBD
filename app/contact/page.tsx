@@ -85,8 +85,8 @@ export default function ContactPage() {
                 <div>
                   <h3 className="font-semibold text-lg mb-1">Email Address</h3>
                   <p className="text-blue-100 text-sm">
-                    <a href="mailto:info@muazbd.net" className="hover:underline">
-                      info@muazbd.net
+                    <a href="mailto:info@muazbd.com" className="hover:underline">
+                      info@muazbd.com
                     </a>
                     <br />
                     <a href="mailto:muaztech.bd@gmail.com" className="hover:underline">

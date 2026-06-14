@@ -92,8 +92,8 @@ export default function ProductDetailClient({
             <ProductPhoto
               src={product.photoUrl}
               alt={product.name}
-              className="rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 p-0"
-              imgClassName="min-h-[360px] object-cover"
+              className="flex min-h-[320px] items-center justify-center rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 md:min-h-[420px]"
+              imgClassName="h-full w-full object-contain p-4 md:p-6"
             />
 
             <div className="space-y-4 md:space-y-6">
@@ -116,30 +116,31 @@ export default function ProductDetailClient({
               </div>
 
               <div className="border-y border-gray-200 py-3 md:py-4">
-                <p className="whitespace-normal break-words break-all leading-relaxed text-gray-700">
+                <div className="whitespace-normal break-words leading-relaxed text-gray-700">
                   <p className="mb-2 font-medium text-gray-800">Description:</p>
                   <div className="text-sm md:text-base">
-                    {(product.details || product.description || "" ).split('\n').map((paragraph, idx) => (
+                    {(product.details || product.description || "").split("\n").map((paragraph, idx) => (
                       <p key={idx} className="mb-2 last:mb-0">
                         {paragraph}
                       </p>
                     ))}
                   </div>
-                </p>
+                </div>
               </div>
 
               {product.keyHighlights.length > 0 ? (
                 <div className="space-y-2">
                   <h3 className="font-semibold text-gray-800">Key Highlights</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {product.keyHighlights.map((highlight) => (
-                      <span 
-                        key={highlight} 
-                        className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-sm text-blue-700">
-                        <CheckCircle size={16} className="text-blue-600" />
-                        {highlight}
-                      </span>
-                    ))}
+                  <div className="flex flex-col gap-2">
+                      {product.keyHighlights.map((highlight) => (
+                        <span
+                          key={highlight}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-sm text-blue-700"
+                        >
+                          <CheckCircle size={16} className="text-blue-600" />
+                          {highlight}
+                        </span>
+                      ))}
                   </div>
                 </div>
               ) : null}
