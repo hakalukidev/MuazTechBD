@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle, Loader2, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -15,6 +15,7 @@ type ProductDetailClientProps = {
 export default function ProductDetailClient({
   productId,
 }: ProductDetailClientProps) {
+  const mapUrl = "https://www.google.com/maps/place/Muaz+Technology/@23.719186,90.4094433,17z/data=!4m7!3m6!1s0x3755b93eeb19d727:0xb774586735f37c8b!4b1!8m2!3d23.7184837!4d90.4115032!16s%2Fg%2F11xlnxv_ts?hl=en&entry=ttu&g_ep=EgoyMDI2MDYxMC4wIKXMDSoASAFQAw%3D%3D";
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -146,18 +147,21 @@ export default function ProductDetailClient({
               ) : null}
 
               <div className="flex flex-col gap-3 pt-2 sm:flex-row md:gap-4">
-                <Link
-                  href={`/contact?product=${encodeURIComponent(product.name)}`}
+                <a
+                  href="tel:+8801897914480"
                   className="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-center font-semibold text-white transition hover:bg-blue-700 md:px-6"
                 >
-                  Get Quote
-                </Link>
-                <Link
-                  href="/contact"
-                  className="flex-1 rounded-lg border-2 border-gray-300 px-4 py-3 text-center font-semibold text-gray-700 transition hover:border-blue-600 hover:text-blue-600 md:px-6"
+                  Call Us
+                </a>
+                <a
+                  href={mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 border-gray-300 px-4 py-3 text-center font-semibold text-gray-700 transition hover:border-blue-600 hover:text-blue-600 md:px-6"
                 >
-                  Contact Us
-                </Link>
+                  <MapPin size={18} />
+                  Visit Shop
+                </a>
               </div>
             </div>
           </div>
@@ -175,7 +179,8 @@ export default function ProductDetailClient({
                     <ProductPhoto
                       src={relatedProduct.photoUrl}
                       alt={relatedProduct.name}
-                      className="h-52"
+                      className="flex h-52 items-center justify-center bg-white p-4"
+                      imgClassName="object-contain"
                     />
                     <div className="p-4">
                       <h3 className="line-clamp-2 text-sm font-medium text-gray-800">

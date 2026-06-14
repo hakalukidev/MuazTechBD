@@ -8,7 +8,8 @@ export const fallbackSlides: Slide[] = [
     cta: "CALL US TODAY",
     ctaHref: "/contact",
     bg: "bg-gray-200",
-    image: "/images/slides/Slide-1.jpeg",
+    image:
+      "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1600&q=80",
     imagePublicId: "",
     order: 1,
     isActive: true,
@@ -22,7 +23,8 @@ export const fallbackSlides: Slide[] = [
     cta: "EXPERT ADVICE",
     ctaHref: "/contact",
     bg: "bg-gray-100",
-    image: "/images/slides/Slide-2.png",
+    image:
+      "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&w=1600&q=80",
     imagePublicId: "",
     order: 2,
     isActive: true,
@@ -36,7 +38,8 @@ export const fallbackSlides: Slide[] = [
     cta: "VIEW PRODUCTS",
     ctaHref: "/products",
     bg: "bg-slate-100",
-    image: "/images/slides/Slide-3.jpg",
+    image:
+      "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?auto=format&fit=crop&w=1600&q=80",
     imagePublicId: "",
     order: 3,
     isActive: true,
@@ -50,7 +53,8 @@ export const fallbackSlides: Slide[] = [
     cta: "CONTACT US",
     ctaHref: "/contact",
     bg: "bg-gray-200",
-    image: "/images/slides/Slide-4.jpeg",
+    image:
+      "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?auto=format&fit=crop&w=1600&q=80",
     imagePublicId: "",
     order: 4,
     isActive: true,

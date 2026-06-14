@@ -6,194 +6,181 @@ import {
   MapPin,
   Phone
 } from 'lucide-react';
-import {
-  FaFacebook,
-  FaInstagram,
-  FaLinkedin,
-  FaTwitter,
-  FaYoutube
-} from 'react-icons/fa';
 
 export default function ContactPage() {
+  const mapUrl = 'https://www.google.com/maps/place/Muaz+Technology/@23.719186,90.4094433,17z/data=!4m7!3m6!1s0x3755b93eeb19d727:0xb774586735f37c8b!4b1!8m2!3d23.7184837!4d90.4115032!16s%2Fg%2F11xlnxv_ts?hl=en&entry=ttu&g_ep=EgoyMDI2MDYxMC4wIKXMDSoASAFQAw%3D%3D';
+  const phoneNumbers = [
+    { label: '+88 01897914480', value: '+8801897914480' },
+    { label: '+88 01897914481', value: '+8801897914481' },
+    { label: '+88 01897914482', value: '+8801897914482' },
+    { label: '+88 01897914483', value: '+8801897914483' },
+  ];
+
   return (
-    <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen">
-      {/* Hero Section */}
-      <div className="relative bg-blue-600 text-white py-16 lg:py-24">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-slate-100">
+      <div className="relative overflow-hidden bg-blue-600 py-16 text-white lg:py-24">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_28%),linear-gradient(135deg,rgba(15,23,42,0.12),rgba(15,23,42,0.32))]" />
+        <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <h1 className="mb-4 text-3xl font-bold sm:text-4xl lg:text-5xl">
               Contact Us
             </h1>
-            <p className="text-base sm:text-lg lg:text-xl text-blue-100">
-              Get in touch with us — we're ready to help you!
+            <p className="text-base text-blue-100 sm:text-lg lg:text-xl">
+              Get in touch with us for product details, pricing, delivery support,
+              and in-store assistance.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-        <div className="max-w-4xl mx-auto">
-          {/* Contact Information Section - Full Width */}
-          <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-xl p-6 sm:p-8 lg:p-10 text-white">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-                Let's Connect
-              </h2>
-              <p className="text-blue-100 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
-                We're here to assist you with all your machinery and equipment needs.
-                <br />
-                Reach out to us today!
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6 lg:gap-8">
-              {/* Address */}
-              <div className="flex gap-4 items-start">
-                <div className="bg-white/20 p-3 rounded-lg flex-shrink-0">
-                  <MapPin size={22} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">Our Address</h3>
-                  <p className="text-blue-100 text-sm leading-relaxed">
-                    92, Wise Market, Nawabpur Road, <br />
-                    Nawabpur, Dhaka-1100
-                  </p>
-                </div>
+      <div className="container mx-auto px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+        <div className="mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_80px_-40px_rgba(15,23,42,0.35)]">
+          <div className="grid lg:grid-cols-[1.15fr_0.85fr]">
+            <section className="flex min-w-0 flex-col">
+              <div className="border-b border-slate-200 px-6 py-6 sm:px-8">
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">
+                  Visit Our Office
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">
+                  Location and store details in one place
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+                  Drop by our Nawabpur office to explore workshop equipment,
+                  discuss your requirements, and get direct support from our
+                  team.
+                </p>
               </div>
 
-              {/* Phone - Combined format */}
-              <div className="flex gap-4 items-start">
-                <div className="bg-white/20 p-3 rounded-lg flex-shrink-0">
-                  <Phone size={22} />
+              <div className="flex flex-1 flex-col lg:flex-row">
+                <div className="flex w-full flex-col justify-between bg-slate-50 p-6 sm:p-8 lg:max-w-sm">
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-4">
+                      <div className="rounded-2xl bg-blue-600 p-3 text-white shadow-lg shadow-blue-200">
+                        <MapPin size={22} />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-900">Our Address</h3>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                          Muaz Technology, 92 Wise Market,
+                          <br />
+                          Nawabpur, Dhaka-1100
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        Business Hours
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-slate-900">
+                        Saturday - Thursday
+                      </p>
+                      <p className="text-sm text-slate-600">9:00 AM - 8:00 PM</p>
+                      <p className="mt-2 text-sm text-slate-600">Friday: Closed</p>
+                    </div>
+                  </div>
+
+                  <a
+                    href={mapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+                  >
+                    Open in Google Maps
+                  </a>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">Phone Numbers</h3>
-                  <p className="text-blue-100 text-sm">
-                    <a href="tel:+8801897914480" className="hover:underline">
-                      +88 01897914480-83
-                    </a>
-                  </p>
+
+                <div className="h-80 w-full sm:h-96 lg:h-auto">
+                  <iframe
+                    src="https://www.google.com/maps?q=23.7184837,90.4115032&z=17&output=embed"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="h-full w-full"
+                    title="Muaz Technology - Nawabpur, Dhaka"
+                  ></iframe>
                 </div>
               </div>
+            </section>
 
-              {/* Email */}
-              <div className="flex gap-4 items-start">
-                <div className="bg-white/20 p-3 rounded-lg flex-shrink-0">
-                  <Mail size={22} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">Email Address</h3>
-                  <p className="text-blue-100 text-sm">
-                    <a href="mailto:info@muazbd.com" className="hover:underline">
-                      info@muazbd.com
-                    </a>
-                    <br />
-                    <a href="mailto:muaztech.bd@gmail.com" className="hover:underline">
-                      muaztech.bd@gmail.com
-                    </a>
-                  </p>
-                </div>
+            <section className="flex h-full flex-col justify-between bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900 p-6 text-white shadow-[inset_1px_0_0_rgba(255,255,255,0.08)] sm:p-8 lg:p-10">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-100">
+                  Contact Info
+                </p>
+                <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
+                  Let&apos;s Connect
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-blue-100 sm:text-base">
+                  Call, email, or message us for equipment details, pricing, and
+                  delivery support.
+                </p>
               </div>
 
-              {/* Business Hours */}
-              <div className="flex gap-4 items-start">
-                <div className="bg-white/20 p-3 rounded-lg flex-shrink-0">
-                  <Clock size={22} />
+              <div className="mt-8 grid gap-4">
+                <div
+                  id="phone-numbers"
+                  className="scroll-mt-28 rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-xl bg-white/15 p-3">
+                      <Phone size={22} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Phone Numbers</h3>
+                      <div className="mt-2 flex flex-col gap-1 text-sm text-blue-50">
+                        {phoneNumbers.map((phoneNumber) => (
+                          <a
+                            key={phoneNumber.value}
+                            href={`tel:${phoneNumber.value}`}
+                            className="transition hover:text-white hover:underline"
+                          >
+                            {phoneNumber.label}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-1">Business Hours</h3>
-                  <p className="text-blue-100 text-sm">
-                    Saturday - Thursday: 9:00 AM - 8:00 PM
-                    <br />
-                    Friday: Closed
-                  </p>
+
+                <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-xl bg-white/15 p-3">
+                      <Mail size={22} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Email Address</h3>
+                      <div className="mt-2 flex flex-col gap-1 text-sm text-blue-50">
+                        <a href="mailto:info@muazbd.com" className="transition hover:text-white hover:underline">
+                          info@muazbd.com
+                        </a>
+                        <a href="mailto:muaztech.bd@gmail.com" className="transition hover:text-white hover:underline">
+                          muaztech.bd@gmail.com
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-xl bg-white/15 p-3">
+                      <Clock size={22} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Working Hours</h3>
+                      <p className="mt-2 text-sm text-blue-50">
+                        Saturday - Thursday: 9:00 AM - 8:00 PM
+                      </p>
+                      <p className="text-sm text-blue-100">Friday: Closed</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Social Media */}
-            <div className="mt-8 pt-6 border-t border-blue-500 text-center">
-              <h3 className="font-semibold text-lg mb-3">Follow Us</h3>
-              <div className="flex gap-3 justify-center flex-wrap">
-                <a
-                  href="https://www.facebook.com/muaztechnology"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-white/20 hover:bg-white/30 p-3 rounded-lg transition duration-300 transform hover:scale-110"
-                  aria-label="Facebook"
-                >
-                  <FaFacebook size={22} />
-                </a>
-                <a
-                  href="https://twitter.com/muaztechnology"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-white/20 hover:bg-white/30 p-3 rounded-lg transition duration-300 transform hover:scale-110"
-                  aria-label="Twitter"
-                >
-                  <FaTwitter size={22} />
-                </a>
-                <a
-                  href="https://linkedin.com/company/muaztechnology"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-white/20 hover:bg-white/30 p-3 rounded-lg transition duration-300 transform hover:scale-110"
-                  aria-label="LinkedIn"
-                >
-                  <FaLinkedin size={22} />
-                </a>
-                <a
-                  href="https://youtube.com/@muaztechnology3326"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-white/20 hover:bg-white/30 p-3 rounded-lg transition duration-300 transform hover:scale-110"
-                  aria-label="YouTube"
-                >
-                  <FaYoutube size={22} />
-                </a>
-                <a
-                  href="https://www.instagram.com/techmuaz/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-white/20 hover:bg-white/30 p-3 rounded-lg transition duration-300 transform hover:scale-110"
-                  aria-label="Instagram"
-                >
-                  <FaInstagram size={22} />
-                </a>
-              </div>
-            </div>
-
-            {/* Decorative Element */}
-            <div className="mt-6 pt-4">
-              <p className="text-blue-100 text-xs text-center">
-                🚀 Quick response guaranteed within 24 hours
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Map Section - Exact Muaz Technology Location */}
-        <div className="mt-12 lg:mt-16 max-w-4xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="h-80 sm:h-96 lg:h-[400px] w-full">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3652.123456789!2d90.4064!3d23.7304!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b8c5a0a7e5a5%3A0xa1b2c3d4e5f67890!2s92%20Wise%20Market%2C%20Nawabpur%20Road%2C%20Dhaka!5e0!3m2!1sen!2sbd!4v1700000000000!5m2!1sen!2sbd"
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                className="w-full h-full"
-                title="Muaz Technology - Wise Market, Nawabpur, Dhaka"
-              ></iframe>
-            </div>
-            <div className="bg-gray-50 px-4 py-3 text-center border-t border-gray-200">
-              <p className="text-sm text-gray-600">
-                📍 92, Wise Market, Nawabpur Road, Nawabpur, Dhaka-1100
-              </p>
-            </div>
+            </section>
           </div>
         </div>
       </div>

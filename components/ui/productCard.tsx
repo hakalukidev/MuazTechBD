@@ -18,7 +18,7 @@ export default function ProductCard({ id, name, image }: ProductCardProps) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="relative aspect-square overflow-hidden bg-gray-50 rounded-t">
+      <div className="relative aspect-[1/1.08] overflow-hidden bg-gray-50 rounded-t">
         <img
           src={image}
           alt={name}
@@ -35,7 +35,7 @@ export default function ProductCard({ id, name, image }: ProductCardProps) {
           </div>
         )}
       </div>
-      <div className="p-3">
+      <div className="p-2.5">
         <p className="text-xs text-gray-800 leading-snug line-clamp-2">{name}</p>
       </div>
     </div>
