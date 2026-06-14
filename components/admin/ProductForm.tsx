@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ImageIcon, Loader2, Save } from "lucide-react";
+import { ImageIcon, Loader2, Save, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -18,17 +18,53 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteManagedProductImage } from "@/lib/product-image-service";
+import { deleteManagedProductImages } from "@/lib/product-image-service";
 import {
   extractCloudinaryPublicId,
-  resolveProductPhotoPublicId,
 } from "@/lib/product-images";
 import {
   getCategoryKey,
   type ManagedCategoryOption,
 } from "@/lib/categories";
-import { type Product, type ProductInput } from "@/lib/products";
+import {
+  getProductPhotoPublicIds,
+  getProductPhotoUrls,
+  type Product,
+  type ProductInput,
+} from "@/lib/products";
 import { cn } from "@/lib/utils";
+
+function parseImageUrls(value: string) {
+  return value
+    .split("\n")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+const productImageUrlsSchema = z
+  .string()
+  .trim()
+  .min(1, "Upload at least one image or paste a valid image URL.")
+  .superRefine((value, context) => {
+    const imageUrls = parseImageUrls(value);
+
+    if (imageUrls.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Upload at least one image or paste a valid image URL.",
+      });
+      return;
+    }
+
+    imageUrls.forEach((imageUrl, index) => {
+      if (!z.string().url().safeParse(imageUrl).success) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Image URL ${index + 1} is not a valid URL.`,
+        });
+      }
+    });
+  });
 
 export const productFormSchema = z.object({
   name: z.string().trim().min(2, "Product name is required."),
@@ -37,8 +73,8 @@ export const productFormSchema = z.object({
   description: z.string().trim().min(8, "Short description is required."),
   details: z.string().trim().min(12, "Details are required."),
   keyHighlights: z.string().trim(),
-  photoUrl: z.string().trim().url("Upload an image or paste a valid image URL."),
-  photoPublicId: z.string().trim(),
+  photoUrlsText: productImageUrlsSchema,
+  photoPublicIds: z.array(z.string().trim()),
   isHot: z.boolean(),
 });
 
@@ -51,8 +87,8 @@ export const emptyProductFormValues: ProductFormValues = {
   description: "",
   details: "",
   keyHighlights: "",
-  photoUrl: "",
-  photoPublicId: "",
+  photoUrlsText: "",
+  photoPublicIds: [],
   isHot: false,
 };
 
@@ -64,13 +100,27 @@ export function toProductFormValues(product: Product): ProductFormValues {
     description: product.description,
     details: product.details,
     keyHighlights: product.keyHighlights.join("\n"),
-    photoUrl: product.photoUrl,
-    photoPublicId: product.photoPublicId,
+    photoUrlsText: getProductPhotoUrls(product).join("\n"),
+    photoPublicIds: getProductPhotoPublicIds(product),
     isHot: product.isHot,
   };
 }
 
 export function toProductInput(values: ProductFormValues): ProductInput {
+  const photoUrls = parseImageUrls(values.photoUrlsText);
+  const photoPublicIds = Array.from(
+    new Set(
+      values.photoPublicIds
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+        .concat(
+          photoUrls
+            .map((photoUrl) => extractCloudinaryPublicId(photoUrl) ?? "")
+            .filter(Boolean)
+        )
+    )
+  );
+
   return {
     name: values.name.trim(),
     category: values.category.trim(),
@@ -81,8 +131,10 @@ export function toProductInput(values: ProductFormValues): ProductInput {
       .split("\n")
       .map((entry) => entry.trim())
       .filter((entry) => entry.length > 0),
-    photoUrl: values.photoUrl.trim(),
-    photoPublicId: values.photoPublicId.trim(),
+    photoUrl: photoUrls[0] ?? "",
+    photoPublicId: photoPublicIds[0] ?? "",
+    photoUrls,
+    photoPublicIds,
     isHot: values.isHot,
   };
 }
@@ -114,17 +166,16 @@ export default function ProductForm({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const previewUrl = form.watch("photoUrl");
+  const [selectedPreviewUrl, setSelectedPreviewUrl] = useState("");
   const previewName = form.watch("name");
   const selectedCategory = form.watch("category");
-  const photoPublicIdField = form.register("photoPublicId");
+  const previewUrls = parseImageUrls(form.watch("photoUrlsText"));
   const uploadedImagesRef = useRef(
     new Map<string, { photoUrl: string; photoPublicId: string }>()
   );
   const skipUnmountCleanupRef = useRef(false);
-  const initialPhotoPublicId = resolveProductPhotoPublicId(defaultValues) ?? "";
-  const hasExistingPhoto = Boolean(defaultValues.photoUrl.trim());
-  const uploadButtonLabel = hasExistingPhoto ? "Change photo" : "Upload image";
+  const hasExistingPhoto = previewUrls.length > 0;
+  const uploadButtonLabel = hasExistingPhoto ? "Add image" : "Upload image";
 
   useEffect(() => {
     return () => {
@@ -136,10 +187,21 @@ export default function ProductForm({
       uploadedImagesRef.current.clear();
 
       uploadedImages.forEach((image) => {
-        void deleteManagedProductImage(image).catch(() => undefined);
+        void deleteManagedProductImages(image).catch(() => undefined);
       });
     };
   }, []);
+
+  useEffect(() => {
+    if (previewUrls.length === 0) {
+      setSelectedPreviewUrl("");
+      return;
+    }
+
+    if (!selectedPreviewUrl || !previewUrls.includes(selectedPreviewUrl)) {
+      setSelectedPreviewUrl(previewUrls[0]);
+    }
+  }, [previewUrls, selectedPreviewUrl]);
 
   useEffect(() => {
     if (form.getValues("category").trim() || categoryOptions.length === 0) {
@@ -201,66 +263,83 @@ export default function ProductForm({
     }
 
     uploadedImagesRef.current.delete(trimmedPublicId);
-    void deleteManagedProductImage(uploadedImage).catch(() => undefined);
+    void deleteManagedProductImages(uploadedImage).catch(() => undefined);
   }
 
-  function cleanupUnsavedUploadedImages(savedPublicId: string) {
-    const trimmedSavedPublicId = savedPublicId.trim();
+  function syncPhotoPublicIds(photoUrlsText: string, nextPublicIds: string[] = []) {
+    const derivedPublicIds = parseImageUrls(photoUrlsText)
+      .map((photoUrl) => extractCloudinaryPublicId(photoUrl) ?? "")
+      .filter(Boolean);
+    const uniquePublicIds = Array.from(
+      new Set(
+        nextPublicIds
+          .map((publicId) => publicId.trim())
+          .filter(Boolean)
+          .concat(derivedPublicIds)
+      )
+    );
+
+    form.setValue("photoPublicIds", uniquePublicIds, {
+      shouldDirty: true,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }
+
+  function cleanupUnsavedUploadedImages(savedPublicIds: string[]) {
+    const savedPublicIdSet = new Set(savedPublicIds.map((publicId) => publicId.trim()).filter(Boolean));
     const uploadsToDelete = Array.from(uploadedImagesRef.current.entries()).filter(
-      ([publicId]) => publicId !== trimmedSavedPublicId
+      ([publicId]) => !savedPublicIdSet.has(publicId)
     );
 
     uploadsToDelete.forEach(([publicId, image]) => {
       uploadedImagesRef.current.delete(publicId);
-      void deleteManagedProductImage(image).catch(() => undefined);
+      void deleteManagedProductImages(image).catch(() => undefined);
     });
 
-    if (!trimmedSavedPublicId) {
+    if (savedPublicIdSet.size === 0) {
       uploadedImagesRef.current.clear();
       return;
-    }
-
-    const savedUpload = uploadedImagesRef.current.get(trimmedSavedPublicId);
-    uploadedImagesRef.current.clear();
-
-    if (savedUpload) {
-      uploadedImagesRef.current.set(trimmedSavedPublicId, savedUpload);
     }
   }
 
   function handleUploadedPhoto(url: string, publicId: string) {
-    const currentPhotoPublicId = form.getValues("photoPublicId").trim();
-    const currentPhotoUrl = form.getValues("photoUrl").trim();
-
-    if (
-      currentPhotoPublicId &&
-      currentPhotoPublicId !== publicId &&
-      currentPhotoPublicId !== initialPhotoPublicId
-    ) {
-      discardUploadedImage(currentPhotoPublicId);
-    }
-
     rememberUploadedImage({
       photoUrl: url,
       photoPublicId: publicId,
     });
+    const currentUrls = parseImageUrls(form.getValues("photoUrlsText"));
+    const nextUrls = currentUrls.includes(url) ? currentUrls : currentUrls.concat(url);
+    const nextPhotoUrlsText = nextUrls.join("\n");
 
-    form.setValue("photoUrl", url, {
+    form.setValue("photoUrlsText", nextPhotoUrlsText, {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
     });
-    form.setValue("photoPublicId", publicId, {
-      shouldDirty: true,
-    });
+    syncPhotoPublicIds(nextPhotoUrlsText, form.getValues("photoPublicIds").concat(publicId));
+    setSelectedPreviewUrl(url);
+  }
 
-    if (
-      currentPhotoUrl &&
-      currentPhotoPublicId &&
-      currentPhotoPublicId !== publicId &&
-      uploadedImagesRef.current.has(currentPhotoPublicId)
-    ) {
-      discardUploadedImage(currentPhotoPublicId);
+  function handleRemovePhoto(urlToRemove: string) {
+    const nextUrls = parseImageUrls(form.getValues("photoUrlsText")).filter(
+      (photoUrl) => photoUrl !== urlToRemove
+    );
+    const nextPhotoUrlsText = nextUrls.join("\n");
+    const removedPublicId = extractCloudinaryPublicId(urlToRemove) ?? "";
+    const nextPublicIds = form
+      .getValues("photoPublicIds")
+      .filter((publicId) => publicId !== removedPublicId);
+
+    form.setValue("photoUrlsText", nextPhotoUrlsText, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    syncPhotoPublicIds(nextPhotoUrlsText, nextPublicIds);
+
+    if (removedPublicId && uploadedImagesRef.current.has(removedPublicId)) {
+      discardUploadedImage(removedPublicId);
     }
   }
 
@@ -270,12 +349,14 @@ export default function ProductForm({
     try {
       await onSubmit(values);
 
-      cleanupUnsavedUploadedImages(values.photoPublicId);
+      cleanupUnsavedUploadedImages(values.photoPublicIds);
 
       if (resetOnSuccess) {
         uploadedImagesRef.current.clear();
       } else {
-        uploadedImagesRef.current.delete(values.photoPublicId.trim());
+        for (const savedPublicId of values.photoPublicIds) {
+          uploadedImagesRef.current.delete(savedPublicId.trim());
+        }
         skipUnmountCleanupRef.current = true;
       }
 
@@ -290,7 +371,6 @@ export default function ProductForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)}>
-        <input type="hidden" {...photoPublicIdField} />
         <div
           className={cn(
             "grid gap-6",
@@ -424,27 +504,21 @@ export default function ProductForm({
 
             <FormField
               control={form.control}
-              name="photoUrl"
+              name="photoUrlsText"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-blue-700">Product image</FormLabel>
-                  <div className="flex flex-col gap-3 md:flex-row">
+                  <FormLabel className="text-blue-700">Product images</FormLabel>
+                  <div className="flex flex-col gap-3">
                     <FormControl>
-                      <Input
-                        placeholder="https://images.example.com/product.jpg"
+                      <Textarea
+                        placeholder={"https://images.example.com/product-1.jpg\nhttps://images.example.com/product-2.jpg"}
                         className="focus-visible:ring-blue-500"
                         {...field}
                         onChange={(event) => {
-                          const nextUrl = event.target.value;
+                          const nextPhotoUrlsText = event.target.value;
 
-                          field.onChange(nextUrl);
-                          form.setValue(
-                            "photoPublicId",
-                            extractCloudinaryPublicId(nextUrl) ?? "",
-                            {
-                              shouldDirty: true,
-                            }
-                          );
+                          field.onChange(nextPhotoUrlsText);
+                          syncPhotoPublicIds(nextPhotoUrlsText, form.getValues("photoPublicIds"));
                         }}
                       />
                     </FormControl>
@@ -458,8 +532,8 @@ export default function ProductForm({
                   </div>
                   <p className="text-sm text-blue-500">
                     {hasExistingPhoto
-                      ? "Use Change photo to upload a replacement image. After you save, the old Cloudinary image is removed automatically."
-                      : "Upload a new image or paste a direct image URL. You can replace the upload before saving if needed."}
+                      ? "The first image is used on product cards. Upload more images or paste one image URL per line."
+                      : "Upload one or more images, or paste one image URL per line."}
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -497,22 +571,56 @@ export default function ProductForm({
               <div className="mb-3">
                 <p className="text-sm font-medium text-blue-950">Image preview</p>
                 <p className="text-sm text-blue-500">
-                  Review the product image before you save changes.
+                  The first image is the card image. Click any thumbnail to preview it here.
                 </p>
               </div>
-              {previewUrl ? (
-                <div className="overflow-hidden rounded-2xl border border-blue-200 bg-blue-50">
-                  <img
-                    src={previewUrl}
-                    alt={previewName || "Uploaded product preview"}
-                    className="h-72 w-full object-cover"
-                  />
+              {selectedPreviewUrl ? (
+                <div className="space-y-3">
+                  <div className="overflow-hidden rounded-2xl border border-blue-200 bg-blue-50">
+                    <img
+                      src={selectedPreviewUrl}
+                      alt={previewName || "Uploaded product preview"}
+                      className="h-72 w-full object-cover"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {previewUrls.map((photoUrl, index) => {
+                      const isSelected = photoUrl === selectedPreviewUrl;
+
+                      return (
+                        <div key={`${photoUrl}-${index}`} className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPreviewUrl(photoUrl)}
+                            className={cn(
+                              "overflow-hidden rounded-lg border bg-white",
+                              isSelected ? "border-blue-500 ring-2 ring-blue-200" : "border-blue-200"
+                            )}
+                          >
+                            <img
+                              src={photoUrl}
+                              alt={`${previewName || "Product"} thumbnail ${index + 1}`}
+                              className="h-16 w-16 object-cover"
+                            />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePhoto(photoUrl)}
+                            className="absolute -right-2 -top-2 rounded-full bg-white p-1 text-red-600 shadow-sm transition hover:bg-red-50"
+                            aria-label={`Remove image ${index + 1}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ) : (
                 <div className="flex h-72 items-center justify-center rounded-2xl border border-dashed border-blue-300 bg-blue-50 text-blue-500">
                   <div className="flex flex-col items-center gap-3 text-center">
                     <ImageIcon className="h-10 w-10" />
-                    <p>Upload an image to preview it here.</p>
+                    <p>Upload product images to preview them here.</p>
                   </div>
                 </div>
               )}

@@ -1,40 +1,64 @@
-import { resolveProductPhotoPublicId } from "@/lib/product-images";
+import { resolveProductPhotoPublicIds } from "@/lib/product-images";
 
 type ProductImageRef = {
   photoUrl?: string | null;
   photoPublicId?: string | null;
+  photoUrls?: string[] | null;
+  photoPublicIds?: string[] | null;
 };
 
-export type ManagedProductImageDeleteResult =
-  | { status: "deleted" }
-  | { status: "not_found" }
-  | { status: "skipped" };
+export type ManagedProductImageDeleteStatus = "deleted" | "not_found" | "skipped";
 
-export async function deleteManagedProductImage(image: ProductImageRef) {
-  const publicId = resolveProductPhotoPublicId(image);
+export type ManagedProductImageDeleteResult = {
+  deletedCount: number;
+  notFoundCount: number;
+  skippedCount: number;
+  status: ManagedProductImageDeleteStatus;
+};
 
-  if (!publicId) {
-    return { status: "skipped" } satisfies ManagedProductImageDeleteResult;
+export async function deleteManagedProductImages(image: ProductImageRef) {
+  const publicIds = resolveProductPhotoPublicIds(image);
+
+  if (publicIds.length === 0) {
+    return {
+      deletedCount: 0,
+      notFoundCount: 0,
+      skippedCount: 1,
+      status: "skipped",
+    } satisfies ManagedProductImageDeleteResult;
   }
 
-  const response = await fetch("/api/admin/cloudinary/delete", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ publicId }),
-  });
-  const payload = (await response.json().catch(() => null)) as
-    | { message?: string; result?: string }
-    | null;
+  let deletedCount = 0;
+  let notFoundCount = 0;
 
-  if (!response.ok) {
-    throw new Error(payload?.message ?? "Image cleanup failed.");
+  for (const publicId of publicIds) {
+    const response = await fetch("/api/admin/cloudinary/delete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ publicId }),
+    });
+    const payload = (await response.json().catch(() => null)) as
+      | { message?: string; result?: string }
+      | null;
+
+    if (!response.ok) {
+      throw new Error(payload?.message ?? "Image cleanup failed.");
+    }
+
+    if (payload?.result === "not found") {
+      notFoundCount += 1;
+      continue;
+    }
+
+    deletedCount += 1;
   }
 
-  if (payload?.result === "not found") {
-    return { status: "not_found" } satisfies ManagedProductImageDeleteResult;
-  }
-
-  return { status: "deleted" } satisfies ManagedProductImageDeleteResult;
+  return {
+    deletedCount,
+    notFoundCount,
+    skippedCount: 0,
+    status: deletedCount > 0 ? "deleted" : "not_found",
+  } satisfies ManagedProductImageDeleteResult;
 }

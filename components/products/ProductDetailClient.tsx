@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 import ProductPhoto from "@/components/products/ProductPhoto";
 import { getAllProducts, getProductById } from "@/lib/product-service";
-import { type Product } from "@/lib/products";
+import { getPrimaryProductPhotoUrl, getProductPhotoUrls, type Product } from "@/lib/products";
 
 type ProductDetailClientProps = {
   productId: string;
@@ -19,6 +19,7 @@ export default function ProductDetailClient({
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState("");
 
   useEffect(() => {
     async function loadProduct() {
@@ -45,6 +46,16 @@ export default function ProductDetailClient({
 
     void loadProduct();
   }, [productId]);
+
+  useEffect(() => {
+    if (!product) {
+      setSelectedPhotoUrl("");
+      return;
+    }
+
+    const productPhotoUrls = getProductPhotoUrls(product);
+    setSelectedPhotoUrl(productPhotoUrls[0] ?? "");
+  }, [product]);
 
   if (isLoading) {
     return (
@@ -78,6 +89,9 @@ export default function ProductDetailClient({
     );
   }
 
+  const productPhotoUrls = getProductPhotoUrls(product);
+  const activePhotoUrl = selectedPhotoUrl || productPhotoUrls[0] || "";
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6 md:py-10">
@@ -90,12 +104,38 @@ export default function ProductDetailClient({
 
         <div className="overflow-hidden rounded-xl bg-white shadow-lg">
           <div className="grid gap-6 p-4 md:grid-cols-2 md:gap-8 md:p-8">
-            <ProductPhoto
-              src={product.photoUrl}
-              alt={product.name}
-              className="flex min-h-[320px] items-center justify-center rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 md:min-h-[420px]"
-              imgClassName="h-full w-full object-contain p-4 md:p-6"
-            />
+            <div className="space-y-4">
+              <ProductPhoto
+                src={activePhotoUrl}
+                alt={product.name}
+                className="flex min-h-[320px] items-center justify-center rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 md:min-h-[420px]"
+                imgClassName="h-full w-full object-contain p-4 md:p-6"
+              />
+              {productPhotoUrls.length > 1 ? (
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {productPhotoUrls.map((photoUrl, index) => {
+                    const isActive = photoUrl === activePhotoUrl;
+
+                    return (
+                      <button
+                        key={`${photoUrl}-${index}`}
+                        type="button"
+                        onClick={() => setSelectedPhotoUrl(photoUrl)}
+                        className={`flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-white p-2 ${
+                          isActive ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200"
+                        }`}
+                      >
+                        <img
+                          src={photoUrl}
+                          alt={`${product.name} image ${index + 1}`}
+                          className="h-full w-full object-contain"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
 
             <div className="space-y-4 md:space-y-6">
               {product.isHot ? (
@@ -177,7 +217,7 @@ export default function ProductDetailClient({
                 <Link href={`/product/${relatedProduct.id}`} key={relatedProduct.id}>
                   <div className="overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-lg">
                     <ProductPhoto
-                      src={relatedProduct.photoUrl}
+                      src={getPrimaryProductPhotoUrl(relatedProduct)}
                       alt={relatedProduct.name}
                       className="flex h-52 items-center justify-center bg-white p-4"
                       imgClassName="object-contain"

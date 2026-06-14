@@ -44,14 +44,16 @@ import {
   matchesManagedCategoryValue,
   type Category,
 } from "@/lib/categories";
-import { deleteManagedProductImage } from "@/lib/product-image-service";
-import { resolveProductPhotoPublicId } from "@/lib/product-images";
+import { deleteManagedProductImages } from "@/lib/product-image-service";
 import { productsQueryKey } from "@/lib/product-query";
 import {
   deleteProduct,
   updateProduct,
 } from "@/lib/product-service";
 import {
+  getProductPhotoPublicIds,
+  getProductPhotoUrls,
+  getPrimaryProductPhotoUrl,
   type Product,
   type ProductInput,
 } from "@/lib/products";
@@ -70,12 +72,34 @@ function formatProductDate(value: number | null) {
 }
 
 function hasProductImageChanged(previousProduct: Product, nextProduct: ProductInput) {
-  const previousPhotoUrl = previousProduct.photoUrl.trim();
-  const nextPhotoUrl = nextProduct.photoUrl.trim();
-  const previousPublicId = resolveProductPhotoPublicId(previousProduct) ?? "";
-  const nextPublicId = resolveProductPhotoPublicId(nextProduct) ?? "";
+  return (
+    JSON.stringify(previousProduct.photoUrls) !== JSON.stringify(nextProduct.photoUrls) ||
+    JSON.stringify(previousProduct.photoPublicIds) !== JSON.stringify(nextProduct.photoPublicIds)
+  );
+}
 
-  return previousPhotoUrl !== nextPhotoUrl || previousPublicId !== nextPublicId;
+function getRemovedProductImages(previousProduct: Product, nextProduct: ProductInput) {
+  const nextPhotoUrls = new Set(getProductPhotoUrls(nextProduct));
+  const nextPhotoPublicIds = new Set(getProductPhotoPublicIds(nextProduct));
+
+  return {
+    photoUrls: getProductPhotoUrls(previousProduct).filter((photoUrl) => !nextPhotoUrls.has(photoUrl)),
+    photoPublicIds: getProductPhotoPublicIds(previousProduct).filter(
+      (photoPublicId) => !nextPhotoPublicIds.has(photoPublicId)
+    ),
+  };
+}
+
+function getAddedProductImages(previousProduct: Product, nextProduct: ProductInput) {
+  const previousPhotoUrls = new Set(getProductPhotoUrls(previousProduct));
+  const previousPhotoPublicIds = new Set(getProductPhotoPublicIds(previousProduct));
+
+  return {
+    photoUrls: getProductPhotoUrls(nextProduct).filter((photoUrl) => !previousPhotoUrls.has(photoUrl)),
+    photoPublicIds: getProductPhotoPublicIds(nextProduct).filter(
+      (photoPublicId) => !previousPhotoPublicIds.has(photoPublicId)
+    ),
+  };
 }
 
 function buildUpdatedProduct(previousProduct: Product, nextProduct: ProductInput): Product {
@@ -210,7 +234,7 @@ export default function AdminProductsPage({
       let cleanupDescription: string | null = null;
 
       try {
-        const cleanupResult = await deleteManagedProductImage(product);
+        const cleanupResult = await deleteManagedProductImages(product);
 
         if (cleanupResult.status !== "deleted") {
           cleanupDescription = getCleanupDescription("deleted product", cleanupResult.status);
@@ -252,6 +276,12 @@ export default function AdminProductsPage({
     const imageChanged = previousProduct
       ? hasProductImageChanged(previousProduct, nextProduct)
       : false;
+    const removedImages = previousProduct
+      ? getRemovedProductImages(previousProduct, nextProduct)
+      : { photoPublicIds: [], photoUrls: [] };
+    const addedImages = previousProduct
+      ? getAddedProductImages(previousProduct, nextProduct)
+      : { photoPublicIds: [], photoUrls: [] };
 
     try {
       await updateProduct(productId, nextProduct);
@@ -268,9 +298,13 @@ export default function AdminProductsPage({
 
       let cleanupDescription: string | null = null;
 
-      if (previousProduct && imageChanged) {
+      if (
+        previousProduct &&
+        imageChanged &&
+        (removedImages.photoUrls.length > 0 || removedImages.photoPublicIds.length > 0)
+      ) {
         try {
-          const cleanupResult = await deleteManagedProductImage(previousProduct);
+          const cleanupResult = await deleteManagedProductImages(removedImages);
 
           if (cleanupResult.status !== "deleted") {
             cleanupDescription = getCleanupDescription("previous image", cleanupResult.status);
@@ -294,9 +328,13 @@ export default function AdminProductsPage({
       });
       setEditingProduct(null);
     } catch {
-      if (previousProduct && imageChanged) {
+      if (
+        previousProduct &&
+        imageChanged &&
+        (addedImages.photoUrls.length > 0 || addedImages.photoPublicIds.length > 0)
+      ) {
         try {
-          await deleteManagedProductImage(nextProduct);
+          await deleteManagedProductImages(addedImages);
         } catch {
           // Keep the original update error as the primary failure surfaced to the UI.
         }
@@ -438,13 +476,14 @@ export default function AdminProductsPage({
               <TableBody>
                 {filteredProducts.map((product) => {
                   const isDeleting = deletingProductId === product.id;
+                  const primaryPhotoUrl = getPrimaryProductPhotoUrl(product);
 
                   return (
                     <TableRow key={product.id} className="border-blue-100">
                       <TableCell>
-                        {product.photoUrl ? (
+                        {primaryPhotoUrl ? (
                           <img
-                            src={product.photoUrl}
+                            src={primaryPhotoUrl}
                             alt={product.name}
                             className="h-14 w-14 rounded-xl object-cover"
                           />

@@ -26,6 +26,8 @@ export type Product = {
   keyHighlights: string[];
   photoUrl: string;
   photoPublicId: string;
+  photoUrls: string[];
+  photoPublicIds: string[];
   isHot: boolean;
   createdAtMs: number | null;
   updatedAtMs: number | null;
@@ -70,12 +72,52 @@ function normalizeHighlights(value: unknown): string[] {
   return [];
 }
 
+function normalizeImageValues(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => String(entry).trim())
+      .filter((entry) => entry.length > 0);
+  }
+
+  if (typeof value === "string") {
+    const trimmedValue = value.trim();
+    return trimmedValue ? [trimmedValue] : [];
+  }
+
+  return [];
+}
+
+function dedupeImageValues(values: string[]) {
+  const seen = new Set<string>();
+
+  return values.filter((value) => {
+    const normalizedValue = value.trim();
+
+    if (!normalizedValue || seen.has(normalizedValue)) {
+      return false;
+    }
+
+    seen.add(normalizedValue);
+    return true;
+  });
+}
+
 export function mapProductSnapshot(snapshot: ProductSnapshot): Product | null {
   if (!snapshot.exists()) {
     return null;
   }
 
   const data = snapshot.data() ?? {};
+  const photoUrls = dedupeImageValues(
+    normalizeImageValues(data.photoUrls).concat(
+      normalizeImageValues(data.photoUrl)
+    )
+  );
+  const photoPublicIds = dedupeImageValues(
+    normalizeImageValues(data.photoPublicIds).concat(
+      normalizeImageValues(data.photoPublicId)
+    )
+  );
 
   return {
     id: snapshot.id,
@@ -85,12 +127,36 @@ export function mapProductSnapshot(snapshot: ProductSnapshot): Product | null {
     description: String(data.description ?? ""),
     details: String(data.details ?? ""),
     keyHighlights: normalizeHighlights(data.keyHighlights),
-    photoUrl: String(data.photoUrl ?? ""),
-    photoPublicId: String(data.photoPublicId ?? ""),
+    photoUrl: photoUrls[0] ?? "",
+    photoPublicId: photoPublicIds[0] ?? "",
+    photoUrls,
+    photoPublicIds,
     isHot: Boolean(data.isHot),
     createdAtMs: getTimestampMs(data.createdAt),
     updatedAtMs: getTimestampMs(data.updatedAt),
   };
+}
+
+export function getProductPhotoUrls(product: Pick<Product, "photoUrl" | "photoUrls">) {
+  return dedupeImageValues(
+    normalizeImageValues(product.photoUrls).concat(
+      normalizeImageValues(product.photoUrl)
+    )
+  );
+}
+
+export function getProductPhotoPublicIds(
+  product: Pick<Product, "photoPublicId" | "photoPublicIds">
+) {
+  return dedupeImageValues(
+    normalizeImageValues(product.photoPublicIds).concat(
+      normalizeImageValues(product.photoPublicId)
+    )
+  );
+}
+
+export function getPrimaryProductPhotoUrl(product: Pick<Product, "photoUrl" | "photoUrls">) {
+  return getProductPhotoUrls(product)[0] ?? "";
 }
 
 export function sortProducts(products: Product[]) {

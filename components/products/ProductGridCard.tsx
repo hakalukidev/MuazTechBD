@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import ProductPhoto from "@/components/products/ProductPhoto";
-import { type Product } from "@/lib/products";
+import { getPrimaryProductPhotoUrl, type Product } from "@/lib/products";
 
 type ProductGridCardProps = {
   product: Product;
@@ -12,6 +12,8 @@ export default function ProductGridCard({
   product,
   showHotBadge = false,
 }: ProductGridCardProps) {
+  const primaryPhotoUrl = getPrimaryProductPhotoUrl(product);
+
   return (
     <article className="group flex w-full max-w-[15.5rem] flex-col border border-slate-200 bg-white shadow-[0_18px_40px_-34px_rgba(15,23,42,0.75)] transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_28px_50px_-32px_rgba(15,23,42,0.75)]">
       <Link
@@ -19,7 +21,7 @@ export default function ProductGridCard({
         className="relative block border-b border-slate-200 bg-slate-50"
       >
         <ProductPhoto
-          src={product.photoUrl}
+          src={primaryPhotoUrl}
           alt={product.name}
           className="h-40 bg-transparent px-3 py-3"
           imgClassName="object-contain transition duration-300 group-hover:scale-105"

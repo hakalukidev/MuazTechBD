@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import ProductPhoto from "@/components/products/ProductPhoto";
-import { type Product } from "@/lib/products";
+import { getPrimaryProductPhotoUrl, type Product } from "@/lib/products";
 
 type ProductSearchBoxProps = {
   onNavigate?: () => void;
@@ -128,7 +128,7 @@ export default function ProductSearchBox({
                     className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-blue-50"
                   >
                     <ProductPhoto
-                      src={product.photoUrl}
+                      src={getPrimaryProductPhotoUrl(product)}
                       alt={product.name}
                       className="h-14 w-14 shrink-0 rounded-xl border border-gray-200"
                     />

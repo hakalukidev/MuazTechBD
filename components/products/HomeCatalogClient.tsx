@@ -15,6 +15,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import ProductPhoto from "@/components/products/ProductPhoto";
+import { getPrimaryProductPhotoUrl } from "@/lib/products";
 import { useProductsQuery } from "@/hooks/use-products-query";
 import { type Product } from "@/lib/products";
 
@@ -322,7 +323,7 @@ export default function HomeCatalogClient({
                           onClick={() => isMobile && setSidebarOpen(false)}
                         >
                           <ProductPhoto
-                            src={product.photoUrl}
+                            src={getPrimaryProductPhotoUrl(product)}
                             alt={product.name}
                             className="h-12 w-12 shrink-0 rounded-lg border border-gray-200"
                             imgClassName="object-cover w-full h-full rounded-lg"
@@ -430,7 +431,7 @@ export default function HomeCatalogClient({
                   >
                     <div className="relative aspect-square cursor-pointer overflow-hidden bg-gray-100">
                       <ProductPhoto
-                        src={product.photoUrl}
+                        src={getPrimaryProductPhotoUrl(product)}
                         alt={product.name}
                         className="h-full w-full"
                         imgClassName="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
