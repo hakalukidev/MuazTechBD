@@ -5,11 +5,11 @@ export default function BrandHeadline() {
         MUAZ TECHNOLOGY
       </div>
       <h2 className="text-3xl font-black text-gray-900 mb-3">
-        Garage Equipment &amp; Workshop Tools Supplier in Bangladesh
+        Trusted Garage Equipment &amp; Workshop Tools Provider in Bangladesh
       </h2>
       <div className="w-16 h-0.5 bg-blue-600 mx-auto mb-4" />
       <p className="text-gray-500 text-sm max-w-xl mx-auto">
-        Equip Your Workshop with Reliable, High-Quality Tools for Enhanced Productivity and Efficiency.
+       Upgrade your workshop with durable, high-quality tools for better productivity and performance.
       </p>
     </div>
   );

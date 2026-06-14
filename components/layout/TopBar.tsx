@@ -11,7 +11,7 @@ export default function TopBar() {
       <div className="bg-blue-600 text-white text-sm py-2 px-4 hidden md:block">
         <div className="container mx-auto flex justify-between items-center">
           <p className="font-bold text-xs lg:text-sm">
-            Comprehensive Solutions for Every Workshop Need.
+          Everything your workshop needs in one place.
           </p>
           <div className="flex items-center gap-4 lg:gap-6">
             <Link href="/" className="flex items-center gap-1 hover:text-blue-200 transition text-xs lg:text-sm font-semibold">
