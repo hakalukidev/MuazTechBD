@@ -2,7 +2,7 @@
 
 import { Home, Newspaper, Phone, Settings } from 'lucide-react';
 import Link from 'next/link';
-import { FaFacebook, FaLinkedin, FaTwitter, FaYoutube } from 'react-icons/fa';
+import { FaFacebook, FaYoutube } from 'react-icons/fa';
 
 export default function TopBar() {
   return (
@@ -30,10 +30,8 @@ export default function TopBar() {
             <div className="flex items-center gap-2 lg:gap-3 border-l border-blue-400 pl-3 lg:pl-4">
               <a href="https://www.facebook.com/muaztechnology" target="_blank" rel="noopener noreferrer" 
               className="hover:text-blue-200 transition"><FaFacebook size={14} /></a>
-              <a href="#" className="hover:text-blue-200 transition"><FaTwitter size={14} /></a>
               <a href="https://youtube.com/@muaztechnology3326" target="_blank" rel="noopener noreferrer" 
               className="hover:text-blue-200 transition"><FaYoutube size={14} /></a>
-              <a href="#" className="hover:text-blue-200 transition"><FaLinkedin size={14} /></a>
             </div>
           </div>
         </div>
@@ -58,10 +56,8 @@ export default function TopBar() {
           <div className="flex items-center gap-2 border-l border-blue-400 pl-3">
             <a href="https://www.facebook.com/muaztechnology" target="_blank" rel="noopener noreferrer" 
             className="hover:text-blue-200 transition"><FaFacebook size={12} /></a>
-            <a href="#" className="hover:text-blue-200 transition"><FaTwitter size={12} /></a>
             <a href="https://youtube.com/@muaztechnology3326" target="_blank" rel="noopener noreferrer" 
             className="hover:text-blue-200 transition"><FaYoutube size={12} /></a>
-            <a href="#" className="hover:text-blue-200 transition"><FaLinkedin size={12} /></a>
           </div>
         </div>
       </div>

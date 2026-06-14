@@ -1,10 +1,29 @@
-// app/about/page.tsx
-'use client';
-
-import { Award, Car, CheckCircle, Mail, MapPin, Phone, Settings, Shield, Truck, Users } from 'lucide-react';
+import {
+  Award,
+  Car,
+  CheckCircle,
+  Gauge,
+  Mail,
+  MapPin,
+  Phone,
+  Settings,
+  Shield,
+  Sparkles,
+  Truck,
+  Users,
+  Waves,
+  Wrench,
+} from 'lucide-react';
 import Link from 'next/link';
 
-export default function AboutPage() {
+import { getAllCategories } from '@/lib/category-service';
+
+const showcaseIcons = [Wrench, Car, Gauge, Waves] as const;
+
+export default async function AboutPage() {
+  const categories = await getAllCategories();
+  const featuredCategories = categories.slice(0, showcaseIcons.length);
+
   return (
     <main className="overflow-hidden">
       {/* Hero Section */}
@@ -150,81 +169,26 @@ export default function AboutPage() {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">Our Premium Products</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center p-4 border rounded-lg hover:shadow-lg transition">
-              <div className="text-5xl mb-3">🔧</div>
-              <h3 className="font-semibold text-gray-800">ATF Changer</h3>
-            </div>
-            <div className="text-center p-4 border rounded-lg hover:shadow-lg transition">
-              <div className="text-5xl mb-3">📱</div>
-              <h3 className="font-semibold text-gray-800">Vehicle Scanning Tool</h3>
-            </div>
-            <div className="text-center p-4 border rounded-lg hover:shadow-lg transition">
-              <div className="text-5xl mb-3">⚖️</div>
-              <h3 className="font-semibold text-gray-800">Automotive Wheel Balancer</h3>
-            </div>
-            <div className="text-center p-4 border rounded-lg hover:shadow-lg transition">
-              <div className="text-5xl mb-3">💨</div>
-              <h3 className="font-semibold text-gray-800">High Pressure Washer Pump</h3>
-            </div>
+            {featuredCategories.map((category, index) => (
+              <div
+                key={category.id}
+                className="text-center p-4 border rounded-lg hover:shadow-lg transition"
+              >
+                <div className="mb-3 flex justify-center">
+                  {(() => {
+                    const Icon = showcaseIcons[index] ?? Sparkles;
+
+                    return <Icon size={40} strokeWidth={1.8} className="text-black" />;
+                  })()}
+                </div>
+                <h3 className="font-semibold text-gray-800">{category.name}</h3>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            GET THE BEST SOLUTIONS FOR YOUR BUSINESS TODAY
-          </h2>
-          <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto">
-            Contact us now to explore our products and services, and let us help you achieve your operational goals.
-          </p>
-          <div className="flex justify-center gap-4 flex-wrap">
-            <Link 
-              href="/contact" 
-              className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
-            >
-              CONTACT US
-            </Link>
-            <Link 
-              href="/products" 
-              className="border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition"
-            >
-              VIEW PRODUCTS
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Info Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg p-6 text-center shadow-md">
-              <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Phone className="text-blue-600" size={20} />
-              </div>
-              <h3 className="font-semibold text-gray-800 mb-2">Phone</h3>
-              <p className="text-gray-600">+88 018 74 61 99 57</p>
-              <p className="text-gray-600">+88 015 15 21 63 62</p>
-            </div>
-            <div className="bg-white rounded-lg p-6 text-center shadow-md">
-              <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Mail className="text-blue-600" size={20} />
-              </div>
-              <h3 className="font-semibold text-gray-800 mb-2">Email</h3>
-              <p className="text-gray-600">muaztech.bd@gmail.com</p>
-            </div>
-            <div className="bg-white rounded-lg p-6 text-center shadow-md">
-              <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <MapPin className="text-blue-600" size={20} />
-              </div>
-              <h3 className="font-semibold text-gray-800 mb-2">Address</h3>
-              <p className="text-gray-600">16/28, Chantec, Kajla, Jatrabari, Dhaka-1236</p>
-            </div>
-          </div>
-        </div>
-      </section>
+   
     </main>
   );
 }

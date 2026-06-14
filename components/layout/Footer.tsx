@@ -2,7 +2,7 @@
 
 import { Mail, MapPin, Phone } from 'lucide-react';
 import Link from 'next/link';
-import { FaFacebook, FaLinkedin, FaTwitter, FaYoutube } from 'react-icons/fa';
+import { FaFacebook, FaYoutube } from 'react-icons/fa';
 
 export default function Footer() {
   return (
@@ -44,7 +44,12 @@ export default function Footer() {
               </p>
               <p className="text-gray-400 text-sm flex items-center justify-center sm:justify-start gap-2">
                 <Mail size={14} className="shrink-0" />
-                <span>info@muazbd.com</span>
+                <a
+                  href="mailto:info@muazbd.com"
+                  className="transition hover:text-white"
+                >
+                  info@muazbd.com
+                </a>
               </p>
             </div>
           </div>
@@ -63,15 +68,6 @@ export default function Footer() {
                 <FaFacebook size={18} className="md:w-5 md:h-5" />
               </a>
               <a 
-                href="#" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="bg-gray-800 p-2 rounded-full hover:bg-blue-400 transition-colors duration-300"
-                aria-label="Twitter"
-              >
-                <FaTwitter size={18} className="md:w-5 md:h-5" />
-              </a>
-              <a 
                 href="https://youtube.com/@muaztechnology3326" 
                 target="_blank" 
                 rel="noopener noreferrer" 
@@ -79,15 +75,6 @@ export default function Footer() {
                 aria-label="YouTube"
               >
                 <FaYoutube size={18} className="md:w-5 md:h-5" />
-              </a>
-              <a 
-                href="#" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="bg-gray-800 p-2 rounded-full hover:bg-blue-700 transition-colors duration-300"
-                aria-label="LinkedIn"
-              >
-                <FaLinkedin size={18} className="md:w-5 md:h-5" />
               </a>
             </div>
             <p className="text-gray-500 text-xs mt-3">Connect with us on social media</p>
@@ -103,7 +90,7 @@ export default function Footer() {
               &copy; {new Date().getFullYear()} Muaz Technology. All rights reserved.
             </p>
             <p className="text-gray-500 text-xs">
-              Developed by <a href="https://hakaluki-devs.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition">hakaluki.devs</a>
+              Developed by <a href="https://hakaluki-devs.vercel.app/" target="_blank" rel="noopener noreferrer" className="hover:text-blue-400 transition">hakaluki.dev</a>
             </p>
           </div>
         </div>
