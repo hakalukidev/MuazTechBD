@@ -31,12 +31,26 @@ export default function VideoSection() {
               your staff is fully trained to use them efficiently. Whether you&apos;re upgrading or
               starting from scratch,
             </p>
-            <Link
-              href="/products"
-              className="mt-6 inline-flex items-center justify-center bg-blue-700 px-6 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-blue-800"
-            >
-              GARAGE EQUIPMENTS
-            </Link>
+             {/* 🔥 Fixed: Proper button group with flex and gap */}
+            <div className="mt-6 flex flex-wrap items-center gap-3 sm:gap-4">
+              <Link
+                href="/products"
+                className="inline-flex items-center justify-center bg-blue-700 px-5 py-3 text-xs sm:text-sm font-bold tracking-wide text-white transition hover:bg-blue-800 sm:px-6"
+              >
+                GARAGE EQUIPMENTS
+              </Link>
+
+            {/* Blog button - same as TopBar BLOG link */}
+              <Link
+                href="/blog"
+                className="inline-flex items-center justify-center gap-1.5 bg-blue-600 px-5 py-3 text-xs sm:text-sm font-bold tracking-wide text-white transition hover:bg-blue-700 sm:px-6"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                </svg>
+                BLOG
+              </Link>
+              </div>
           </div>
         </div>
       </div>
