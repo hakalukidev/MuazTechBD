@@ -1,6 +1,8 @@
 'use client';
 
-import { BlogPost } from '@/lib/blog-type';
+import { BlogPost, normalizeBlogPost } from '@/lib/blog-type';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import {
   Calendar,
   CheckCircle,
@@ -26,27 +28,30 @@ export default function AdminBlogPage() {
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   useEffect(() => {
-    void fetchPosts();
+    if (!db) {
+      setLoading(false);
+      return;
+    }
+
+    const blogRef = collection(db, 'blog');
+    const q = query(blogRef, orderBy('createdAt', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const postsData = snapshot.docs.map((doc) =>
+        normalizeBlogPost(doc.id, doc.data())
+      );
+      setPosts(postsData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching posts:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  async function fetchPosts() {
-    try {
-      const response = await fetch('/api/admin/blog');
-      const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error ?? 'Failed to fetch blog posts.');
-      }
-
-      setPosts(data);
-    } catch (error) {
-      console.error(error);
-      setPosts([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  // ✅ handleDelete আপডেট করুন (onSnapshot অটো আপডেট করবে)
   async function handleDelete(id: string) {
     if (!confirm('Delete this post?')) {
       return;
@@ -62,7 +67,7 @@ export default function AdminBlogPage() {
         throw new Error(data?.error ?? 'Failed to delete post.');
       }
 
-      setPosts((currentPosts) => currentPosts.filter((post) => post.id !== id));
+      // setPosts((currentPosts) => currentPosts.filter((post) => post.id !== id));
     } catch (error) {
       console.error(error);
       alert('Failed to delete the post.');

@@ -1,28 +1,52 @@
-import { db } from '@/lib/firebase';
+'use client';
+
 import { normalizeBlogPost, type BlogPost } from '@/lib/blog-type';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Calendar } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-async function getBlogPosts() {
-  try {
+export default function BlogPage() {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
     if (!db) {
-      return [];
+      setLoading(false);
+      return;
     }
+
     const blogRef = collection(db, 'blog');
     const q = query(blogRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs
-      .map((doc) => normalizeBlogPost(doc.id, doc.data()))
-      .filter((post) => post.published);
-  } catch (error) {
-    console.error('Error fetching posts:', error);
-    return [];
-  }
-}
 
-export default async function BlogPage() {
-  const posts = await getBlogPosts();
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const postsData = snapshot.docs
+        .map((doc) => normalizeBlogPost(doc.id, doc.data()))
+        .filter((post) => post.published === true);
+      
+      setPosts(postsData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching posts:', error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="bg-white min-h-screen py-12">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-20">
+            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500">Loading posts...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="bg-white min-h-screen py-12">
