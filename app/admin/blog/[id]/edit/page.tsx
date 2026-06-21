@@ -1,5 +1,4 @@
-import AdminShell from '@/components/admin/AdminShell';
-import BlogPostEditor from '@/components/admin/BlogPostEditor';
+import { redirect } from 'next/navigation';
 
 type AdminEditBlogRouteProps = {
   params: {
@@ -10,9 +9,6 @@ type AdminEditBlogRouteProps = {
 export default function AdminEditBlogRoute({
   params,
 }: AdminEditBlogRouteProps) {
-  return (
-    <AdminShell>
-      <BlogPostEditor mode="edit" postId={params.id} />
-    </AdminShell>
-  );
+  redirect(`/admin/blog/${params.id}/edit`);
 }
+

@@ -1,10 +1,6 @@
-import AdminShell from '@/components/admin/AdminShell';
-import BlogPostEditor from '@/components/admin/BlogPostEditor';
+import { redirect } from 'next/navigation';
 
 export default function AdminNewBlogRoute() {
-  return (
-    <AdminShell>
-      <BlogPostEditor mode="create" />
-    </AdminShell>
-  );
+  redirect('/admin/blog/new');
 }
+
