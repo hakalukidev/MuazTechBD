@@ -1,3 +1,4 @@
+// components/BlogPostList.tsx
 'use client';
 
 import { normalizeBlogPost, type BlogPost } from '@/lib/blog-type';
@@ -8,9 +9,9 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 type BlogPostListProps = {
-  limit?: number; // কতটি পোস্ট দেখাবে
-  showViewAll?: boolean; // "View All" বাটন দেখাবে কিনা
-  variant?: 'grid' | 'list'; // গ্রিড বা লিস্ট ভিউ
+  limit?: number;
+  showViewAll?: boolean;
+  variant?: 'grid' | 'list';
 };
 
 export default function BlogPostList({ 
@@ -61,23 +62,31 @@ export default function BlogPostList({
 
   return (
     <div>
-      {/* গ্রিড ভিউ */}
-      {variant === 'grid' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {posts.map((post) => (
-            <BlogPostCard key={post.id} post={post} />
-          ))}
-        </div>
-      )}
+      {/* মোবাইলে শুধু ১টি পোস্ট (লেটেস্ট) */}
+      <div className="block md:hidden">
+        {posts.slice(0, 1).map((post) => (
+          <BlogPostCard key={post.id} post={post} variant="list" />
+        ))}
+      </div>
 
-      {/* লিস্ট ভিউ */}
-      {variant === 'list' && (
-        <div className="space-y-8">
-          {posts.map((post) => (
-            <BlogPostCard key={post.id} post={post} variant="list" />
-          ))}
-        </div>
-      )}
+      {/* ট্যাবলেট/ডেস্কটপে সব পোস্ট (গ্রিড ভিউ) */}
+      <div className="hidden md:block">
+        {variant === 'grid' && (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            {posts.map((post) => (
+              <BlogPostCard key={post.id} post={post} />
+            ))}
+          </div>
+        )}
+
+        {variant === 'list' && (
+          <div className="space-y-8">
+            {posts.map((post) => (
+              <BlogPostCard key={post.id} post={post} variant="list" />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* View All বাটন */}
       {showViewAll && posts.length > 0 && (
